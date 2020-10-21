@@ -2,14 +2,9 @@ from af_execution_manager.api.instance_control_api import InstanceControlApi
 from af_execution_manager.models.templ_ref_initial_remote_iterator_data import TemplRefInitialRemoteIteratorData
 from af_licence_manager.api.arista_flow_service_api import AristaFlowServiceApi
 from af_licence_manager.api.licence_manager_api import LicenceManagerApi
-from af_worklist_manager.api.worklist_update_manager_api import WorklistUpdateManagerApi
-from af_worklist_manager.models.client_worklist_item import ClientWorklistItem
-from af_worklist_manager.models.initial_inc_client_worklist_data import InitialIncClientWorklistData
-from af_worklist_manager.models.worklist_update_configuration import WorklistUpdateConfiguration
 
 from aristaflow.client_platform import AristaFlowClientPlatform
 from aristaflow.configuration import Configuration
-from aristaflow.worklist_service import WorklistService
 
 
 conf = Configuration(base_url="http://127.0.0.1:8080/",
@@ -39,7 +34,7 @@ def print_template_info():
 
 # print_template_info()
 
-ws = WorklistService(cs=cs)
+ws = cs.worklist_service
 
 items = ws.get_worklist()
 print(f"Found {len(items)} worklist items")

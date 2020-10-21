@@ -32,4 +32,5 @@ class Configuration(object):
         return self.baseUrl + "/" + service_type + "/" + service_instance
 
     def get_debug(self, service_type: str, service_instance: str = None) -> bool:
-        return False  # service_type == "ExecutionManager"
+        return False
+        # return service_type == "WorklistManager"

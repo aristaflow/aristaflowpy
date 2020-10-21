@@ -1,6 +1,7 @@
-from .client_service import AristaFlowClientService
-from .configuration import Configuration
+from . import AristaFlowClientService
+from . import Configuration
 from .rest_helper import RestPackageRegistry
+from aristaflow.service_provider import ServiceProvider
 
 
 class AristaFlowClientPlatform(object):
@@ -19,6 +20,6 @@ class AristaFlowClientPlatform(object):
         if user_session in self.__client_services:
             return self.__client_services[user_session]
         cs = AristaFlowClientService(
-            self.configuration, user_session, self.__rest_package_registry)
+            self.configuration, user_session, ServiceProvider(self.__rest_package_registry))
         self.__client_services[user_session] = cs
         return cs

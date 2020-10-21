@@ -13,8 +13,8 @@ from af_worklist_manager.models.update_interval import UpdateInterval
 from af_worklist_manager.models.worklist_revision import WorklistRevision
 from af_worklist_manager.models.worklist_update_configuration import WorklistUpdateConfiguration
 
-from aristaflow.client_service import AristaFlowClientService
-from aristaflow.worklist_model import Worklist
+from .service_provider import ServiceProvider
+from .worklist_model import Worklist
 
 
 class WorklistService(object):
@@ -23,10 +23,11 @@ class WorklistService(object):
     fetch_count: int = None
     __worklist: Worklist = None
     __items: List[ClientWorklistItem] = None
+    __service_provider:ServiceProvider = None
 
-    def __init__(self, cs: AristaFlowClientService):
-        self.__cs = cs
+    def __init__(self, service_provider:ServiceProvider):
         self.__items = []
+        self.__service_provider = service_provider
 
     def create_worklist_update_configuration(self) -> WorklistUpdateConfiguration:
         """ Creates a default worklist update configuration
@@ -46,7 +47,7 @@ class WorklistService(object):
             # perform update
             return self.__items
 
-        wum: WorklistUpdateManagerApi = self.__cs.get_service(
+        wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
             WorklistUpdateManagerApi)
         update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration()
         wlit: InitialIncClientWorklistData = None
@@ -79,7 +80,7 @@ class WorklistService(object):
             return
 
         # fetch next
-        inc_cl: IncClientWorklistsApi = self.__cs.get_service(
+        inc_cl: IncClientWorklistsApi = self.__service_provider.get_service(
             IncClientWorklistsApi)
         next_it: IncClientWorklistData = inc_cl.inc_client_wl_get_next(
             inc.inc_wl_id)
@@ -91,7 +92,7 @@ class WorklistService(object):
         if self.__worklist == None:
             return self.get_worklist()
 
-        wu: WorklistUpdateManagerApi = self.__cs.get_service(
+        wu: WorklistUpdateManagerApi = self.__service_provider.get_service(
             WorklistUpdateManagerApi)
         inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(self.__worklist.worklist_id, body=self.__worklist.revision,
                                                                           filter=self.__worklist.wu_conf.worklist_filter)
@@ -113,7 +114,7 @@ class WorklistService(object):
             return
 
         # fetch next
-        iwua: IncWorklistUpdateApi = self.__cs.get_service(
+        iwua: IncWorklistUpdateApi = self.__service_provider.get_service(
             IncWorklistUpdateApi)
         next_it: IncWorklistUpdateData = iwua.inc_wl_updt_get_next(
             inc.inc_upd_id)
