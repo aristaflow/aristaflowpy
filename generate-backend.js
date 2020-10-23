@@ -42,13 +42,60 @@ function downloadSwagger() {
   return jarPromise;
 }
 
+function applySwaggerJsonFixes(swaggerJson) {
+  var changed = false;
+
+  // discriminator is only legal in conjunction with allOf, oneOf, anyOf
+  var schemaWithMissingAllOf = [];
+  for (var schemaName in swaggerJson.components.schemas) {
+    var schema = swaggerJson.components.schemas[schemaName];
+    if (schema.discriminator && !schema.allOf) {
+      schemaWithMissingAllOf.push(schemaName);
+    }
+  }
+  // schemaWithMissingAllOf = ["ActivityReference"];
+  schemaWithMissingAllOf.forEach(function (schema) {
+    changed = true;
+    var old = swaggerJson.components.schemas[schema];
+    var required;
+    if (old.required) {
+      required = old.required;
+      delete old["required"];
+    }
+    var discriminator = old.discriminator;
+    delete old["discriminator"];
+    swaggerJson.components.schemas[schema] = {
+      allOf: [{ $ref: "#/components/schemas/DummyParent" }, old],
+      type: "object",
+      discriminator: discriminator,
+      required: required,
+    };
+    if (required) {
+      swaggerJson.components.schemas[schema].required = required;
+    }
+  });
+
+  if (changed) {
+    swaggerJson.components.schemas.DummyParent = {
+      type: "object",
+    };
+    console.log("Patched the following schemata: ", schemaWithMissingAllOf);
+  }
+
+  if (changed) {
+    fs.writeFileSync(swaggerFile, JSON.stringify(swaggerJson));
+  }
+}
+
 function applyPatches(generatedCodePath, project) {
+  // return;
   console.log("Patching generated code...");
   const options = {
     files: [generatedCodePath + project + "/**/*.py"],
     from: /replaced below/g,
     to: "replaced below",
   };
+  let replaceResult = {};
   // Prevent any value for the "discriminator" property name specified by the subclass to be overwritten by the super class
   // replace:
   //         self.discriminator =
@@ -58,18 +105,24 @@ function applyPatches(generatedCodePath, project) {
   options.from = /        self\.discriminator =/g;
   options.to =
     '        if not(hasattr(self, "discriminator")) or not(self.discriminator):\n            self.discriminator =';
-  let replaceResult = replace.sync(options);
+  replaceResult = replace.sync(options);
   // console.log("Patch result: ", replaceResult);
 
   // Use the attribute map to look up the value of the "discriminator" field in the response data
+  // and use the value as is and not as "lower()"
   // replace:
   //         discriminator_value = data[self.discriminator].lower()
   // with:
-  //         discriminator_value = data[self.attribute_map[self.discriminator]].lower()
+  //         discriminator_value = data[self.attribute_map[self.discriminator]]
   options.from = /        discriminator_value = data\[self\.discriminator\]\.lower\(\)/g;
   options.to =
-    "        discriminator_value = data[self.attribute_map[self.discriminator]].lower()";
+    "        discriminator_value = data[self.attribute_map[self.discriminator]]";
   replaceResult = replace.sync(options);
+
+  options.from = /        return self\.discriminator_value_class_map\.get\(discriminator_value\)/g;
+  options.to = "        return discriminator_value";
+  replaceResult = replace.sync(options);
+
   // console.log("Patch result: ", replaceResult);
 
   // Response code check: if the response code indicates an empty response (status code 204), return "None"
@@ -116,6 +169,7 @@ function generateClient(service, project) {
         }
       }
       var swaggerJson = JSON.parse(fs.readFileSync(swaggerFile));
+      applySwaggerJsonFixes(swaggerJson);
       var packageVersion = swaggerJson.info.version;
       fs.writeFileSync(
         configFile,
