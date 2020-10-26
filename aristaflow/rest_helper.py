@@ -31,6 +31,7 @@ class RestPackage(object):
             config = config_class()
             config.host = self.af_conf.get_host(self.service_type_name)
             config.debug = self.af_conf.get_debug(self.service_type_name)
+            config.verify_ssl = self.af_conf.verify_ssl
             self.__config = config
 
         return self.__config

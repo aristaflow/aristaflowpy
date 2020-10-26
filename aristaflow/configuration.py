@@ -2,7 +2,7 @@
 class Configuration(object):
     # TODO remote (html) runtime manager
     # TODO PIR
-    def __init__(self, base_url: str, caller_uri: str):
+    def __init__(self, base_url: str, caller_uri: str, verify_ssl=True):
         """
         :param baseUrl
         """
@@ -12,6 +12,7 @@ class Configuration(object):
             base_url = base_url + "/AristaFlowREST"
         self.__baseUrl = base_url
         self.__caller_uri = caller_uri
+        self.__verify_ssl = verify_ssl
 
     @property
     def baseUrl(self) -> str:
@@ -20,6 +21,10 @@ class Configuration(object):
     @property
     def caller_uri(self) -> str:
         return self.__caller_uri
+
+    @property
+    def verify_ssl(self) -> bool:
+        return self.__verify_ssl
 
     def get_host(self, service_type: str, service_instance: str = None) -> str:
         """
