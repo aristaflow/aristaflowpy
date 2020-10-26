@@ -7,6 +7,11 @@ from .configuration import Configuration
 #from .rest_helper import RestPackageRegistry, RestPackage, RestPackageInstance
 from .worklist_service import WorklistService
 from aristaflow.service_provider import ServiceProvider
+from af_org_model_manager.models.authentication_data import AuthenticationData
+from af_org_model_manager.models.auth_data_org_pos import AuthDataOrgPos
+from af_org_model_manager.models.auth_data_user_name import AuthDataUserName
+from af_org_model_manager.models.auth_data_arbitrary import AuthDataArbitrary
+import base64
 
 
 T = TypeVar('T')
@@ -52,6 +57,27 @@ class AristaFlowClientService(object):
         """
         return self.__csd != None
 
+    def authenticate_psk(self, username: str, org_pos_id: int=None):
+        if self.__af_conf.pre_shared_key == None:
+            raise Exception('Authentication mechanism unavailable')
+        
+        auth_data:list[AuthenticationData] = []
+        if org_pos_id != None:
+            auth_data.append(AuthDataOrgPos(org_pos_id, sub_class="AuthDataOrgPos"))
+        auth_data.append(AuthDataUserName(username, sub_class="AuthDataUserName"))
+        psk = self.__af_conf.pre_shared_key
+        # get the utf-8 bytes, encode them using base 64 and decode the resulting bytes using ASCII
+        psk_encoded = base64.b64encode(bytes(psk, "UTF-8")).decode('ascii')
+        auth_data.append(AuthDataArbitrary(data=psk_encoded, sub_class="AuthDataArbitrary"))
+        
+        gsm: GlobalSecurityManagerApi = self.get_service(
+            GlobalSecurityManagerApi)
+        csds: list[ClientSessionDetails] = gsm.authenticate_all_method('SHARED_UTF-8_KEY', self.__af_conf.caller_uri,
+                                                                       body=auth_data)
+
+        self.__post_auth(csds, username, org_pos_id)
+
+
     def authenticate(self, username: str, password: str, org_pos_id: int=None):
         """ Authenticates this client service and makes the authentication available to all __services.
         """
@@ -65,6 +91,11 @@ class AristaFlowClientService(object):
         else:
             csds = self.get_service(GlobalSecurityManagerApi).authenticate_all(
                 user_name=username, password=password, caller_uri=self.__af_conf.caller_uri)
+
+        self.__post_auth(csds, username, org_pos_id)
+
+
+    def __post_auth(self, csds:list, username:str, org_pos_id:int):
         csd: ClientSessionDetails = None
         if len(csds) == 1:
             csd = csds[0]
@@ -81,8 +112,8 @@ class AristaFlowClientService(object):
                     break
 
         self.__service_provider.authenticated(csd)
-
         self.__csd = csd
+
 
     @property
     def worklist_service(self):

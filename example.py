@@ -13,6 +13,8 @@ platform = AristaFlowClientPlatform(conf)
 cs = platform.get_client_service()
 
 cs.authenticate("supervisor", "password")
+# Example using pre-shared key auth
+#cs.authenticate_psk("supervisor")
 
 
 def print_connection_info():
