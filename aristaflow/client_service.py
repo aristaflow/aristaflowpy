@@ -12,6 +12,9 @@ from af_org_model_manager.models.auth_data_org_pos import AuthDataOrgPos
 from af_org_model_manager.models.auth_data_user_name import AuthDataUserName
 from af_org_model_manager.models.auth_data_arbitrary import AuthDataArbitrary
 import base64
+from af_org_model_manager.models.auth_data_app_name import AuthDataAppName
+from af_org_model_manager.models.auth_data_password import AuthDataPassword
+from af_org_model_manager.models.qualified_agent import QualifiedAgent
 
 
 T = TypeVar('T')
@@ -57,45 +60,60 @@ class AristaFlowClientService(object):
         """
         return self.__csd != None
 
-    def authenticate_psk(self, username: str, org_pos_id: int=None):
-        if self.__af_conf.pre_shared_key == None:
-            raise Exception('Authentication mechanism unavailable')
+    def authenticate(self, username: str, password: str = None, org_pos_id: int=None):
+        if self.__csd != None:
+            raise Exception("Already authenticated")
         
         auth_data:list[AuthenticationData] = []
+        auth_data.append(AuthDataUserName(username, sub_class="AuthDataUserName"))
         if org_pos_id != None:
             auth_data.append(AuthDataOrgPos(org_pos_id, sub_class="AuthDataOrgPos"))
-        auth_data.append(AuthDataUserName(username, sub_class="AuthDataUserName"))
         psk = self.__af_conf.pre_shared_key
-        # get the utf-8 bytes, encode them using base 64 and decode the resulting bytes using ASCII
-        psk_encoded = base64.b64encode(bytes(psk, "UTF-8")).decode('ascii')
-        auth_data.append(AuthDataArbitrary(data=psk_encoded, sub_class="AuthDataArbitrary"))
+        method:str = None
+        # if a password was provided, use it
+        if password:
+            auth_data.append(AuthDataPassword(password=password, sub_class="AuthDataPassword"))
+            method = 'UTF-8_PASSWORD';
+        # if PSK is configured, use that
+        elif psk:
+            # get the utf-8 bytes, encode them using base 64 and decode the resulting bytes using ASCII
+            psk_encoded = base64.b64encode(bytes(psk, "UTF-8")).decode('ascii')
+            auth_data.append(AuthDataArbitrary(data=psk_encoded, sub_class="AuthDataArbitrary"))
+            method = 'SHARED_UTF-8_KEY'
+        else:
+            raise Exception('No authentication method left');
         
         gsm: GlobalSecurityManagerApi = self.get_service(
             GlobalSecurityManagerApi)
-        csds: list[ClientSessionDetails] = gsm.authenticate_all_method('SHARED_UTF-8_KEY', self.__af_conf.caller_uri,
+
+        # use a provided application name
+        if self.__af_conf.application_name:
+            if  org_pos_id == None:
+                # if an application name is provided, an org position ID must be used as well
+                # get the org positions
+                agents:list[QualifiedAgent] = gsm.pre_authenticate_method(method, body=auth_data)
+                agent:QualifiedAgent = None
+                # pick the single org position
+                if len(agents) == 1:
+                    agent = agents[0]
+                # none: can't login
+                elif len(agents) == 0:
+                    raise Exception(f"User does not have an org position {username} (supplied org position id: {org_pos_id})")
+                else:
+                    # use the first org position, except there is a agent_name/username match     
+                    agent = agents[0]
+                    for a in agents:
+                        if a.agent_name == username:
+                            agent = a
+                            break
+                # set the org position for the actual authentication
+                auth_data.append(AuthDataOrgPos(agent.org_pos_id, sub_class='AuthDataOrgPos'))
+            # use the application name
+            auth_data.append(AuthDataAppName(app_name=self.__af_conf.application_name, sub_class="AuthDataAppName"))
+        
+        csds: list[ClientSessionDetails] = gsm.authenticate_all_method(method, self.__af_conf.caller_uri,
                                                                        body=auth_data)
 
-        self.__post_auth(csds, username, org_pos_id)
-
-
-    def authenticate(self, username: str, password: str, org_pos_id: int=None):
-        """ Authenticates this client service and makes the authentication available to all __services.
-        """
-        if self.__csd != None:
-            raise Exception("Already authenticated")
-
-        csds: list[ClientSessionDetails] = None
-        if org_pos_id != None:
-            csds = self.get_service(GlobalSecurityManagerApi).authenticate_all(
-                user_name=username, password=password, org_pos_id=org_pos_id, caller_uri=self.__af_conf.caller_uri)
-        else:
-            csds = self.get_service(GlobalSecurityManagerApi).authenticate_all(
-                user_name=username, password=password, caller_uri=self.__af_conf.caller_uri)
-
-        self.__post_auth(csds, username, org_pos_id)
-
-
-    def __post_auth(self, csds:list, username:str, org_pos_id:int):
         csd: ClientSessionDetails = None
         if len(csds) == 1:
             csd = csds[0]

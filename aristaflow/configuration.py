@@ -2,7 +2,7 @@
 class Configuration(object):
     # TODO remote (html) runtime manager
     # TODO PIR
-    def __init__(self, base_url: str, caller_uri: str, verify_ssl=True, pre_shared_key:str = None):
+    def __init__(self, base_url: str, caller_uri: str, verify_ssl=True, pre_shared_key:str = None, application_name:str=None):
         """
         :param baseUrl
         """
@@ -14,6 +14,7 @@ class Configuration(object):
         self.__caller_uri = caller_uri
         self.__verify_ssl = verify_ssl
         self.__pre_shared_key = pre_shared_key
+        self.__application_name = application_name
 
     @property
     def baseUrl(self) -> str:
@@ -30,6 +31,10 @@ class Configuration(object):
     @property
     def pre_shared_key(self) -> str:
         return self.__pre_shared_key
+
+    @property
+    def application_name(self) -> str:
+        return self.__application_name
 
     def get_host(self, service_type: str, service_instance: str = None) -> str:
         """
