@@ -43,7 +43,10 @@ class Configuration(object):
         :return: str The host value for the requested service
         """
         if service_instance == None:
-            service_instance = service_type
+            if service_type == 'RuntimeManager':
+                service_instance = 'RemoteHTMLRuntimeManager'
+            else:
+                service_instance = service_type
         return self.baseUrl + "/" + service_type + "/" + service_instance
 
     def get_debug(self, service_type: str, service_instance: str = None) -> bool:

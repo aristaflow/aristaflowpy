@@ -173,3 +173,15 @@ class WorklistService(object):
             if item.id == val.id:
                 self.__items.remove(val)
                 return
+
+    def find_item_by_id(self, item_id:str) -> ClientWorklistItem:
+        """ Finds a worklist item by its worklist item id. Returns none, if not in the worklist of the user.
+        """
+        #print(f'Finding item with id {item_id}')
+        self.update_worklist()
+        #print(self.__items)
+        for item in self.__items:
+            if item.id == item_id:
+                #print('Found')
+                return item
+        return None

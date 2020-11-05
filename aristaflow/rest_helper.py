@@ -127,3 +127,11 @@ class RestPackageInstance(object):
         if self.__api_client == None:
             self.__api_client = self.__rest_package.build_api_client()
         return self.__api_client
+
+    def deserialize(self, data, klass):
+        """ Deserialize data using the given class of the generated OpenAPI models. 
+        """
+        ac = self.api_client
+        #print(dir(ac))
+        return ac._ApiClient__deserialize(data, klass)
+    

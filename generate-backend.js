@@ -120,7 +120,8 @@ function applyPatches(generatedCodePath, project) {
   replaceResult = replace.sync(options);
 
   options.from = /        return self\.discriminator_value_class_map\.get\(discriminator_value\)/g;
-  options.to = "        return discriminator_value";
+  options.to =
+    "        return discriminator_value if not(self.__class__.__name__ == discriminator_value) else None";
   replaceResult = replace.sync(options);
 
   // console.log("Patch result: ", replaceResult);

@@ -19,6 +19,21 @@ class ServiceProvider(object):
         self.__rest_package_registry = rest_package_registry
         self.__rest_packages = {}
         self.__services = {}
+    
+    
+    def __get_package_instance(self, service_type:Type) -> RestPackageInstance:
+        """ Returns the (cached) ApiClient instance for the package of the given service_type.
+        Note, that service_type may also be a model class.
+        """
+        # find the package description and package instance
+        pkg = self.__rest_package_registry.get_rest_package(service_type)
+        pkg_instance: RestPackageInstance = None
+        if pkg in self.__rest_packages:
+            pkg_instance = self.__rest_packages[pkg]
+        else:
+            pkg_instance = RestPackageInstance(pkg)
+
+        return pkg_instance
 
     def get_service(self, service_type: Type[T]) -> T:
         """
@@ -30,16 +45,9 @@ class ServiceProvider(object):
         if service_type in self.__services:
             return self.__services[service_type]
 
-        # find the package description and package instance
-        pkg = self.__rest_package_registry.get_rest_package(service_type)
-        pkg_instance: RestPackageInstance = None
-        if pkg in self.__rest_packages:
-            pkg_instance = self.__rest_packages[pkg]
-        else:
-            pkg_instance = RestPackageInstance(pkg)
-
         # get the ApiClient object of the package
-        api_client = pkg_instance.api_client
+        api_client = self.__get_package_instance(service_type).api_client
+        
         # authentication data
         if self.__csd:
             self.__use_authentication(api_client)
@@ -63,3 +71,9 @@ class ServiceProvider(object):
         self.__csd = csd
         for _, inst in self.__rest_packages:
             self.__use_authentication(inst.api_client)
+
+    def deserialize(self, data, klass):
+        """ Deserialize data using the given class of the generated OpenAPI models. 
+        """
+        return self.__get_package_instance(klass).deserialize(data, klass)
+    
