@@ -24,6 +24,9 @@ const swaggerCodegenJar = "swagger-codegen-cli.jar";
 const swaggerFile = "swagger.json";
 const configFile = "swagger-config.json";
 
+// increment this whenever changing the generated output w/o updated major/minor versions of the endpoint
+const genearteBackendVersion = 1;
+
 // download the swagger code generator
 function downloadSwagger() {
   const jarExists = fs.existsSync(swaggerCodegenJar);
@@ -87,7 +90,7 @@ function applySwaggerJsonFixes(swaggerJson) {
   }
 }
 
-function applyPatches(generatedCodePath, project) {
+function applyPatches(generatedCodePath, project, serviceName) {
   // return;
   console.log("Patching generated code...");
   const options = {
@@ -139,6 +142,27 @@ function applyPatches(generatedCodePath, project) {
     "        if response.status == 204:\n            return None\n        # handle file downloading";
   replaceResult = replace.sync(options);
   // console.log("Patch result: ", replaceResult);
+
+  // package properties in setup.py
+  options.files = [generatedCodePath + "/setup.py"];
+  options.from = /    author_email="",/g;
+  options.to =
+    "    author=\"AristaFlow GmbH\",\n    author_email=\"info@aristaflow.com\",";
+  replaceResult = replace.sync(options);
+  // console.log("Patch result: ", replaceResult);
+  options.from = /    description="AristaFlowREST\/[a-zA-Z]+",/g;
+  options.to =
+    '    description="AristaFlow BPM ' + serviceName + ' REST Client",';
+  replaceResult = replace.sync(options);
+  // console.log("Patch result: ", replaceResult);
+  options.from = /    long_description="""\\.*"""/gms;
+  options.to = '    long_description="AristaFlow BPM REST Client library for connecting to the ' + serviceName + ' endpoint. https://pypi.org/project/aristaflowpy/ provides APIs on top of the AristaFlow BPM REST endpoints for many use cases, so using aristaflowpy is recommended."';
+  replaceResult = replace.sync(options);
+  if (replaceResult.length != 1 || !replaceResult[0].hasChanged) {
+    console.log(replaceResult);
+    throw Error('Could not replace long_description');
+  }
+
   console.log("Patching done");
 }
 
@@ -171,7 +195,11 @@ function generateClient(service, project) {
       }
       var swaggerJson = JSON.parse(fs.readFileSync(swaggerFile));
       applySwaggerJsonFixes(swaggerJson);
+      // update the package version: use the last place for the version of this generater script
       var packageVersion = swaggerJson.info.version;
+      packageVersionParts = packageVersion.split('.');
+      packageVersionParts[2] = genearteBackendVersion;
+      packageVersion = packageVersionParts.join('.');
       fs.writeFileSync(
         configFile,
         JSON.stringify({
@@ -213,10 +241,13 @@ function generateClient(service, project) {
         console.log(res.stdout);
         console.log(res.stderr);
 
-        applyPatches(generatedCodePath, project);
+        applyPatches(generatedCodePath, project, service);
+
+        // copy the license file
+        fs.copyFileSync('./LICENSE', generatedCodePath + 'LICENSE');
 
         console.log("Installing python module " + service);
-        return execFile("python", ["setup.py", "install"], {
+        return execFile("python", ["setup.py", "install", "sdist", "bdist_wheel"], {
           cwd: "./swagger/" + project,
         }).then((res) => {
           console.log(
