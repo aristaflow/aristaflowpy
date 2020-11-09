@@ -51,4 +51,4 @@ class Configuration(object):
 
     def get_debug(self, service_type: str, service_instance: str = None) -> bool:
         return False
-        # return service_type == "WorklistManager"
+        #return service_type == "RuntimeManager"

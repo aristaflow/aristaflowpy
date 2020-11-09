@@ -25,6 +25,7 @@ from aristaflow.html_gui_context import HtmlGuiContext
 from af_execution_manager.api.activity_execution_control_api import ActivityExecutionControlApi
 import af_execution_manager
 from af_remote_html_runtime_manager.models.activity_rest_callback_data import ActivityRestCallbackData
+from aristaflow.process_service import ProcessService
 
 
 T = TypeVar('T')
@@ -43,6 +44,7 @@ class AristaFlowClientService(object):
     __service_provider:ServiceProvider = None
     __worklist_service:WorklistService = None
     __is_html_runtime_manager_logged_on = False
+    __process_service:ProcessService = None
 
     def __init__(self, configuration: Configuration,
                  user_session: str,
@@ -150,8 +152,14 @@ class AristaFlowClientService(object):
     @property
     def worklist_service(self):
         if self.__worklist_service == None:
-            self.__worklist_service = WorklistService(self)
+            self.__worklist_service = WorklistService(self.__service_provider)
         return self.__worklist_service
+
+    @property
+    def process_service(self):
+        if self.__process_service == None:
+            self.__process_service = ProcessService(self.__service_provider)
+        return self.__process_service
 
     def start_html_activity(self, item:WorklistItem, callback_url:str):
         """
