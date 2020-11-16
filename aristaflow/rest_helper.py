@@ -1,6 +1,7 @@
 from importlib import import_module
 
 from aristaflow.configuration import Configuration
+from multiprocessing.pool import ThreadPool
 
 
 class RestPackage(object):
@@ -119,15 +120,20 @@ class RestPackageInstance(object):
     __rest_package: RestPackage = None
     __api_client: object = None
 
-    def __init__(self, rest_package: RestPackage):
+    def __init__(self, rest_package: RestPackage, async_thread_pool:ThreadPool):
         self.__rest_package = rest_package
+        self.__async_thread_pool = async_thread_pool
 
     @property
     def api_client(self) -> object:
         if self.__api_client == None:
             self.__api_client = self.__rest_package.build_api_client()
+            # replace the default thread pool with our own, shared one
+            orig_pool = self.__api_client.pool
+            self.__api_client.pool = self.__async_thread_pool
+            orig_pool.close() # no need to join(), work hadn't started yet
         return self.__api_client
-
+    
     def deserialize(self, data, klass):
         """ Deserialize data using the given class of the generated OpenAPI models. 
         """

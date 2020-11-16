@@ -1,6 +1,7 @@
 from .rest_helper import RestPackageRegistry, RestPackage, RestPackageInstance
 from af_org_model_manager.models.client_session_details import ClientSessionDetails
 from typing import Type, TypeVar
+from multiprocessing.pool import ThreadPool
 
 T = TypeVar('T')
 
@@ -14,11 +15,14 @@ class ServiceProvider(object):
     __services: [type, object] = None
     # authentication
     __csd: ClientSessionDetails = None
+    # thread pool for async requests
+    __async_thread_pool:ThreadPool = None
 
-    def __init__(self, rest_package_registry: RestPackageRegistry):
+    def __init__(self, rest_package_registry: RestPackageRegistry, async_thread_pool:ThreadPool):
         self.__rest_package_registry = rest_package_registry
         self.__rest_packages = {}
         self.__services = {}
+        self.__async_thread_pool = async_thread_pool
     
     
     def __get_package_instance(self, service_type:Type) -> RestPackageInstance:
@@ -31,7 +35,7 @@ class ServiceProvider(object):
         if pkg in self.__rest_packages:
             pkg_instance = self.__rest_packages[pkg]
         else:
-            pkg_instance = RestPackageInstance(pkg)
+            pkg_instance = RestPackageInstance(pkg, self.__async_thread_pool)
 
         return pkg_instance
 
