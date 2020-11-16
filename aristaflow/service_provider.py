@@ -76,4 +76,9 @@ class ServiceProvider(object):
         """ Deserialize data using the given class of the generated OpenAPI models. 
         """
         return self.__get_package_instance(klass).deserialize(data, klass)
-    
+
+    def serialize(self, obj):
+        """ Serialize REST model object 
+        """
+        klass = type(obj)
+        return self.__get_package_instance(klass).serialize(obj)

@@ -135,3 +135,8 @@ class RestPackageInstance(object):
         #print(dir(ac))
         return ac._ApiClient__deserialize(data, klass)
     
+    def serialize(self, obj):
+        """ Serialize REST model object 
+        """
+        ac = self.api_client
+        return ac.sanitize_for_serialization(obj)

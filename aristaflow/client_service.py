@@ -172,7 +172,7 @@ class AristaFlowClientService(object):
             raise Exception(f'Not an HTML activity: {item.act_ref.gui_context_id}')
         if item.state == 'STARTED':
             raise Exception('Item is already started')
-        sas = self.__get_html_activity_starting()
+        sas = self.get_html_activity_starting()
         gc:GuiContext = None
         ar:AfActivityReference = item.act_ref
         #print('Starting activity...')
@@ -193,7 +193,7 @@ class AristaFlowClientService(object):
         return HtmlGuiContext(gc)
     
     
-    def __get_html_activity_starting(self) -> SynchronousActivityStartingApi:
+    def get_html_activity_starting(self) -> SynchronousActivityStartingApi:
         """
         Returns the Remote HTML Runtime Manager Syncrounous Activity Starting, ensuring logon to the Runtime Manager
         """
@@ -221,4 +221,9 @@ class AristaFlowClientService(object):
         """ Deserialize data using the given class of the generated OpenAPI models. 
         """
         return self.__service_provider.deserialize(data, klass)
+
+    def serialize(self, obj) -> str:
+        """ Serialize REST model object 
+        """
+        return self.__service_provider.serialize(obj)
     
