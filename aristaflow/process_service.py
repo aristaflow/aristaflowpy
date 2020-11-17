@@ -6,6 +6,8 @@ from af_execution_manager.models.templ_ref_initial_remote_iterator_data import T
 from af_execution_manager.api.templ_ref_remote_iterator_rest_api import TemplRefRemoteIteratorRestApi
 from af_execution_manager.models.templ_ref_remote_iterator_data import TemplRefRemoteIteratorData
 from af_execution_manager.models.template_reference import TemplateReference
+from af_execution_manager.models.instance_creation_data import InstanceCreationData
+from af_execution_manager.models.instance_creation_rest_data import InstanceCreationRestData
 class ProcessService(object):
     """ Process related methods
     """
@@ -56,3 +58,14 @@ class ProcessService(object):
         next_it: TemplRefRemoteIteratorData = tref_rest.templ_ref_get_next(inc.iterator_id)
         self.__iterate(tpls, next_it)
 
+
+    def start_by_id(self, template_id:str, callback_uri:str = None) -> str:
+        """ Starts a process given by the template id. Returns the logical ID of the started instance.
+        """
+        ic:InstanceControlApi = self.__service_provider.get_service(InstanceControlApi)
+        if callback_uri == None:
+            return ic.create_and_start_instance(template_id)
+        else:
+            inst_creation_data = InstanceCreationRestData(sub_class='InstanceCreationRestData', notification_callback=callback_uri)
+            return ic.create_and_start_instance_callback(body=inst_creation_data, templ_id=template_id)
+        

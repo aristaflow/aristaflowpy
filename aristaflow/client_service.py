@@ -227,3 +227,8 @@ class AristaFlowClientService(object):
         """
         return self.__service_provider.serialize(obj)
     
+    @property
+    def autostart_timeout_seconds(self) -> int:
+        """ Wait time in seconds for auto start signals
+        """
+        return self.__af_conf.autostart_timeout_seconds
