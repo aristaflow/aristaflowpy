@@ -97,10 +97,11 @@ class WorklistService(object):
         inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(self.__worklist.worklist_id, body=self.__worklist.revision,
                                                                           filter=self.__worklist.wu_conf.worklist_filter)
 
-        updates: List[ClientWorklistItemUpdate] = []
-        self.__iterate_updates(updates, inc_updts)
-        self.__apply_worklist_updates(
-            inc_updts.source_revision, inc_updts.target_revision, updates)
+        if inc_updts != None:
+            updates: List[ClientWorklistItemUpdate] = []
+            self.__iterate_updates(updates, inc_updts)
+            self.__apply_worklist_updates(
+                inc_updts.source_revision, inc_updts.target_revision, updates)
 
     def __iterate_updates(self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData):
         """ Consumes the given worklist update iterator and appends all retrieved updates to the provided updates list. 
@@ -159,9 +160,11 @@ class WorklistService(object):
     def __replace_or_add_item(self, item: ClientWorklistItem):
         """ Replaces or adds the given worklist item in self.__items
         """
-        for i, val in self.__items:
+        #print('__replace_or_add_item: __items=', self.__items)
+        for i in range(len(self.__items)):
+            val = self.__items[i]
             if item.id == val.id:
-                self.__items[i] = val
+                self.__items[i] = item
                 return
         # not found above, append it
         self.__items.append(val)
