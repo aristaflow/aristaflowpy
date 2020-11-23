@@ -84,9 +84,8 @@ class ProcessService(AbstractService):
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
             return ic.create_and_start_instance(template_id, body=inst_creation_data)
         else:
-            inst_creation_data = InstanceCreationRestData(sub_class='InstanceCreationRestData')
+            inst_creation_data = InstanceCreationRestData(sub_class='InstanceCreationRestData', notification_callback = callback_uri)
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
-            inst_creation_data.notification_callback = callback_uri
             return ic.create_and_start_instance_callback(body=inst_creation_data, templ_id=template_id)
 
 
