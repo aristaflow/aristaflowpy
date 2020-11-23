@@ -3,13 +3,13 @@ import re
 class Version(object):
     """ Parsing and comparing version strings
     """
-    __pattern:re.Pattern = re.compile("(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?")
+    __pattern:re = re.compile("(\\d+)(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?")
     
     def key(self, v:str) -> int:
         if not(v):
             return 0
         
-        m:re.Match = self.__pattern.match(v)
+        m:re = self.__pattern.match(v)
         # invalid version string
         if m == None:
             return 0
