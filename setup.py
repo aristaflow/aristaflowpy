@@ -17,7 +17,7 @@ REQUIRES = ["urllib3 >= 1.15", "six >= 1.10", "certifi", "python-dateutil"]
 
 setup(
     name="aristaflowpy",
-    version="1.2.1",
+    version="1.3.0",
     description="AristaFlow BPM",
     author_email="info@aristaflow.com",
     url="https://www.aristaflow.com",

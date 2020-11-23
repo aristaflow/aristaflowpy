@@ -45,7 +45,7 @@ class WorklistService(object):
         """
         if self.__worklist != None:
             # perform update
-            return self.__items
+            return self.update_worklist()
 
         wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
             WorklistUpdateManagerApi)
@@ -56,6 +56,10 @@ class WorklistService(object):
                 body=update_conf, count=self.fetch_count)
         else:
             wlit = wum.logon_and_create_client_worklist(body=update_conf)
+
+        # currently no items in the worklist
+        if wlit == None:
+            return self.__items
 
         self.__iterate(self.__items, wlit)
 
@@ -102,6 +106,7 @@ class WorklistService(object):
             self.__iterate_updates(updates, inc_updts)
             self.__apply_worklist_updates(
                 inc_updts.source_revision, inc_updts.target_revision, updates)
+        return self.__items
 
     def __iterate_updates(self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData):
         """ Consumes the given worklist update iterator and appends all retrieved updates to the provided updates list. 
@@ -132,6 +137,9 @@ class WorklistService(object):
             self.__worklist = None
             self.get_worklist()
             return
+
+        #print(f'Applying {len(updates)} updates')
+        #print(updates)
 
         for update in updates:
             self.__apply_worklist_update(update)
@@ -167,7 +175,7 @@ class WorklistService(object):
                 self.__items[i] = item
                 return
         # not found above, append it
-        self.__items.append(val)
+        self.__items.append(item)
 
     def __remove_item(self, item: ClientWorklistItem):
         """ Removes the given worklist item from self.__items
