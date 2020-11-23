@@ -1,6 +1,6 @@
+# -*- coding: utf-8 -*-
 from typing import List, Union
 
-from aristaflow.service_provider import ServiceProvider
 from af_execution_manager.api.instance_control_api import InstanceControlApi
 from af_execution_manager.models.templ_ref_initial_remote_iterator_data import TemplRefInitialRemoteIteratorData
 from af_execution_manager.api.templ_ref_remote_iterator_rest_api import TemplRefRemoteIteratorRestApi
@@ -11,15 +11,10 @@ from aristaflow.utils import VERSION
 from af_execution_manager.models.parameter_value import ParameterValue
 from af_execution_manager.models.instance_creation_data import InstanceCreationData
 from af_execution_manager.models.data_container import DataContainer
-class ProcessService(object):
+from aristaflow.abstract_service import AbstractService
+class ProcessService(AbstractService):
     """ Process related methods
     """
-
-    __service_provider:ServiceProvider = None
-
-    def __init__(self, service_provider:ServiceProvider):
-        self.__service_provider = service_provider
-    
     
     def __tpl_version_key(self, tpl:TemplateReference) -> int:
         return VERSION.key(tpl.version)
@@ -46,7 +41,7 @@ class ProcessService(object):
         """ Retrieves the instantiable tempaltes from the server
         :return: List[TemplateReference] The instantiable templates for the current user 
         """
-        ic:InstanceControlApi = self.__service_provider.get_service(InstanceControlApi)
+        ic:InstanceControlApi = self._service_provider.get_service(InstanceControlApi)
         initial:TemplRefInitialRemoteIteratorData = ic.get_instantiable_templ_refs()
         tpls: List[TemplateReference] = []
         self.__iterate(tpls, initial)
@@ -67,7 +62,7 @@ class ProcessService(object):
             return
 
         # fetch next
-        tref_rest: TemplRefRemoteIteratorRestApi = self.__service_provider.get_service(
+        tref_rest: TemplRefRemoteIteratorRestApi = self._service_provider.get_service(
             TemplRefRemoteIteratorRestApi)
         next_it: TemplRefRemoteIteratorData = tref_rest.templ_ref_get_next(inc.iterator_id)
         self.__iterate(tpls, next_it)
@@ -83,7 +78,7 @@ class ProcessService(object):
     def start_by_id(self, template_id:str, callback_uri:str = None, input_data:dict = None) -> str:
         """ Starts a process given by the template id. Returns the logical ID of the started instance.
         """
-        ic:InstanceControlApi = self.__service_provider.get_service(InstanceControlApi)
+        ic:InstanceControlApi = self._service_provider.get_service(InstanceControlApi)
         if callback_uri == None:
             inst_creation_data = InstanceCreationData(sub_class='InstanceCreationData')
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)

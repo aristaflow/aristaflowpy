@@ -26,6 +26,7 @@ from af_execution_manager.api.activity_execution_control_api import ActivityExec
 import af_execution_manager
 from af_remote_html_runtime_manager.models.activity_rest_callback_data import ActivityRestCallbackData
 from aristaflow.process_service import ProcessService
+from aristaflow.delegation_service import DelegationService
 
 
 T = TypeVar('T')
@@ -45,6 +46,7 @@ class AristaFlowClientService(object):
     __worklist_service:WorklistService = None
     __is_html_runtime_manager_logged_on = False
     __process_service:ProcessService = None
+    __delegation_service:DelegationService = None
 
     def __init__(self, configuration: Configuration,
                  user_session: str,
@@ -160,6 +162,12 @@ class AristaFlowClientService(object):
         if self.__process_service == None:
             self.__process_service = ProcessService(self.__service_provider)
         return self.__process_service
+
+    @property
+    def delegation_service(self):
+        if self.__delegation_service == None:
+            self.__delegation_service = DelegationService(self.__service_provider)
+        return self.__delegation_service
 
     def start_html_activity(self, item:WorklistItem, callback_url:str):
         """
