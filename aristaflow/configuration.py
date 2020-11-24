@@ -50,7 +50,8 @@ class Configuration(object):
     def get_host(self, service_type: str, service_instance: str = None) -> str:
         """
         Returns the host definition for the given service type / instance, based on the configuration.
-        :param package: The package for which to return the host, e.g. af_org_model_manager
+        :param service_type: The BPM service type name, e.g. WorklistManager
+        :param service_instance: Optionally the simple BPM service instance name, e.g. RemoteHTMLRuntimeManager
         :return: str The host value for the requested service
         """
         if service_instance == None:

@@ -155,7 +155,7 @@ class WorklistService(object):
         if update_type == "CHANGED":
             self.__replace_or_add_item(item)
         elif update_type == "ADDED":
-            self.__items += item
+            self.__items += [item]
         elif update_type == "REMOVED":
             self.__remove_item(item)
         elif update_type == "ADDED_OR_CHANGED":
