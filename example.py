@@ -1,11 +1,21 @@
+from typing import List
+
 from af_execution_manager.api.instance_control_api import InstanceControlApi
 from af_execution_manager.models.templ_ref_initial_remote_iterator_data import TemplRefInitialRemoteIteratorData
 from af_licence_manager.api.arista_flow_service_api import AristaFlowServiceApi
 from af_licence_manager.api.licence_manager_api import LicenceManagerApi
-
+from af_runtime_service.api.remote_activity_starting_api import RemoteActivityStartingApi
+from af_runtime_service.api.remote_runtime_environment_api import RemoteRuntimeEnvironmentApi
+from af_runtime_service.models.activity_configuration import ActivityConfiguration
+from af_runtime_service.models.activity_instance import ActivityInstance
+from af_runtime_service.models.data_context import DataContext
+from af_runtime_service.models.ebp_instance_reference import EbpInstanceReference
+from af_runtime_service.models.parameter_value import ParameterValue
+from af_runtime_service.models.simple_session_context import SimpleSessionContext
+from af_worklist_manager.models.af_activity_reference import AfActivityReference
+from af_worklist_manager.models.worklist_item import WorklistItem
 from aristaflow.client_platform import AristaFlowClientPlatform
 from aristaflow.configuration import Configuration
-from time import sleep
 
 
 conf = Configuration(base_url="http://127.0.0.1:8080/",
@@ -24,7 +34,7 @@ def print_connection_info():
     print(f"Licensed to: {li.licensee}")
 
 
-# print_connection_info()
+print_connection_info()
 
 
 def print_template_info():
@@ -33,7 +43,7 @@ def print_template_info():
     print(f"Found instantiable templates: {len(tpl.templ_refs)}")
 
 
-# print_template_info()
+print_template_info()
 
 ws = cs.worklist_service
 
@@ -43,16 +53,42 @@ ws.update_worklist()
 print(f"Found {len(items)} worklist items")
 
 
+def runtime_service_example(item:WorklistItem):
+    # build an EbpInstanceReference
+    ar:AfActivityReference = item.act_ref
+    ebp_ir = EbpInstanceReference(ar.type, ar.instance_id, ar.instance_log_id, ar.base_template_id, ar.node_id, ar.node_iteration, ar.execution_manager_uris, ar.runtime_manager_uris)
+    
+    # start the activity using REST
+    ras:RemoteActivityStartingApi = cs.get_service(RemoteActivityStartingApi)
+    rre:RemoteRuntimeEnvironmentApi = cs.get_service(RemoteRuntimeEnvironmentApi)
+    ssc:SimpleSessionContext = ras.start_activity(body=ebp_ir)
+    
+    try:
+        # Configuration values of the activity
+        act_instance:ActivityInstance = ssc.act_instance
+        act_conf:ActivityConfiguration = act_instance.act_conf
+        # access any configuration value (values is a python dict)
+        #my_other_config_value = act_conf.values['My config key']
+        
+        # input/output parameters are found in the DataContext
+        dc:DataContext = ssc.data_context
+        # read input from here
+        pvs_in:List[ParameterValue] = dc.values
+        # write output in there
+        pvs_out:List[ParameterValue] = dc.output_values
+        
+        # Done? -> signal the completion via REST
+        rre.application_closed(ssc.session_id, body=dc)
+    except:
+        rre.application_failed(999, ssc.session_id, body=ssc.data_context)
+        raise
 
-#for item in items:
-#    print(item.act_ref.executable_component_name)
-#    if item.state != 'STARTED' and item.act_ref.executable_component_name == 'de.aristaflow.form.GeneratedForm':
-#        print(item)
-#        gui_context = cs.start_html_activity(item)
-#        print(gui_context.url)
-#        cs.reset_activity(item)
-#        break
+#ps = cs.process_service
+#ps.start_by_id('234567-456-34-23456...')
+#items = ws.get_worklist()
+#print(items)
 
-#if len(items) > 0:
-#    gui_context = cs.start_html_activity(items[0])
-#    print(gui_context)
+# worklist item from the worklist
+item:WorklistItem = items[1]
+runtime_service_example(item)
+

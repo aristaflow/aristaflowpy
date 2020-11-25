@@ -27,6 +27,7 @@ import af_execution_manager
 from af_remote_html_runtime_manager.models.activity_rest_callback_data import ActivityRestCallbackData
 from aristaflow.process_service import ProcessService
 from aristaflow.delegation_service import DelegationService
+from aristaflow.absence_service import AbsenceService
 
 
 T = TypeVar('T')
@@ -47,6 +48,7 @@ class AristaFlowClientService(object):
     __is_html_runtime_manager_logged_on = False
     __process_service:ProcessService = None
     __delegation_service:DelegationService = None
+    __absence_service:AbsenceService = None
 
     def __init__(self, configuration: Configuration,
                  user_session: str,
@@ -168,6 +170,12 @@ class AristaFlowClientService(object):
         if self.__delegation_service == None:
             self.__delegation_service = DelegationService(self.__service_provider)
         return self.__delegation_service
+
+    @property
+    def absence_service(self):
+        if self.__absence_service == None:
+            self.__absence_service = AbsenceService(self.__service_provider)
+        return self.__absence_service
 
     def start_html_activity(self, item:WorklistItem, callback_url:str):
         """

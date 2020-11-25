@@ -36,6 +36,7 @@ class ServiceProvider(object):
             pkg_instance = self.__rest_packages[pkg]
         else:
             pkg_instance = RestPackageInstance(pkg, self.__async_thread_pool)
+            self.__rest_packages[pkg] = pkg_instance
 
         return pkg_instance
 
@@ -73,7 +74,8 @@ class ServiceProvider(object):
             raise Exception("Already authenticated")
 
         self.__csd = csd
-        for _, inst in self.__rest_packages:
+        for key in self.__rest_packages:
+            inst = self.__rest_packages[key]
             self.__use_authentication(inst.api_client)
 
     def deserialize(self, data, klass):

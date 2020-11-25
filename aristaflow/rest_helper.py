@@ -2,6 +2,7 @@ from importlib import import_module
 
 from aristaflow.configuration import Configuration
 from multiprocessing.pool import ThreadPool
+from uuid import uuid4
 
 
 class RestPackage(object):
@@ -46,6 +47,11 @@ class RestPackage(object):
         api_client = ac_class(self.config)
         api_client.set_default_header(
             "x-AF-Caller-URI", self.af_conf.caller_uri)
+        # Runtime Service requires matching session IDs for its start/signal calls
+        # since we can't set them on a per-request basis, set a random session
+        # id for the lifetime of the service instance
+        if self.package_name.startswith('af_runtime_service'):
+            api_client.set_default_header('x-AF-Session-ID', str(uuid4()))
         return api_client
 
     @property
