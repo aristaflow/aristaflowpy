@@ -9,7 +9,7 @@ from af_worklist_manager.models.qualified_agent import QualifiedAgent
 
 from aristaflow.abstract_service import AbstractService
 from datetime import datetime
-from aristaflow.utils import TO_BPM_DATE, FROM_BPM_DATE
+from aristaflow.utils import TO_BPM_DATE, FROM_BPM_DATE, OrgUtils
 from af_org_model_manager.api.policy_resolution_api import PolicyResolutionApi
 from af_org_model_manager.api.qa_remote_iterator_api import QaRemoteIteratorApi
 
@@ -67,11 +67,7 @@ class AbsenceService(AbstractService):
                 is_absent_now = absence_started and absence_lasting
                 if ai.substitution_rule:
                     substitute_agents = self._rem_iter_handler.consume(pol_res.resolve_policy(org_policy=ai.substitution_rule), 'agents', QaRemoteIteratorApi)
-                for agent in substitute_agents:
-                    if substitute_summary == '':
-                        substitute_summary = agent.agent_name
-                    else:
-                        substitute_summary = substitute_summary + ', ' + agent.agent_name
+                substitute_summary = OrgUtils.summarize_qa_list(*substitute_agents)
             else:
                 ai = {}
             res.append(ExtendedAbsenceInformation(absentee, is_absent_now, substitute_summary, substitute_agents, ai))

@@ -50,3 +50,23 @@ def FROM_BPM_DATE(timestamp:int) -> datetime:
         return None
     return datetime.fromtimestamp(timestamp/1e3)
 
+
+class OrgUtils(object):
+    """ Org model related utilities
+    """
+    
+    @classmethod
+    def summarize_qa_list(self, *qas):
+        """ Returns a summarizing string for the given qas
+        """
+        if not(qas):
+            return ''
+        summary = ''
+        for agent in qas:
+            name = agent.agent_name if agent.agent_name == agent.org_pos_name else f'{agent.agent_name} ({agent.org_pos_name})'
+            if summary == '':
+                summary = name
+            else:
+                summary = summary + ', ' + name
+
+        return summary
