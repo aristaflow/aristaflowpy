@@ -102,7 +102,7 @@ class AbsenceService(AbstractService):
     def create_staff_assignment_rule_for_qa(self, qa:QualifiedAgent) -> str:
         """ Creates a staff assignment rule selecting exactly the given agent.
         """
-        return f"Agent(id={qa.agent_id}) AND OrgPosition(id={qa.org_pos_id})"
+        return OrgUtils.build_staff_assignment_rule_for_agent(qa.agent_id, qa.org_pos_id)
     
     
     def set_absent(self, absentee:QualifiedAgent, substitutes:List[QualifiedAgent], absent_from:datetime=None, absent_until:datetime=None):

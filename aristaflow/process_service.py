@@ -12,6 +12,8 @@ from af_execution_manager.models.parameter_value import ParameterValue
 from af_execution_manager.models.instance_creation_data import InstanceCreationData
 from af_execution_manager.models.data_container import DataContainer
 from aristaflow.abstract_service import AbstractService
+from af_process_manager.api.instance_manager_api import InstanceManagerApi
+from af_process_manager.models.instance_reference import InstanceReference
 class ProcessService(AbstractService):
     """ Process related methods
     """
@@ -101,5 +103,16 @@ class ProcessService(AbstractService):
                     value = input_data[pv.name]
                     pv.value = value
         return idc
+        
+    def get_instance_ref(self, inst_id:str) -> InstanceReference:
+        """
+        Finds the instance reference for the given instance ID (logical or log ID)
+        """
+        im:InstanceManagerApi = self._service_provider.get_service(InstanceManagerApi)
+        try:
+            return im.get_instance_refs(body=[inst_id]).inst_refs[0]
+        except:
+            logicl_id = im.get_logical_instance_ids(body=[inst_id]).inst_ids[0]
+            return im.get_instance_refs(body=[logicl_id]).inst_refs[0]
         
         

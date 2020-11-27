@@ -56,7 +56,7 @@ class OrgUtils(object):
     """
     
     @classmethod
-    def summarize_qa_list(self, *qas):
+    def summarize_qa_list(cls, *qas):
         """ Returns a summarizing string for the given qas
         """
         if not(qas):
@@ -70,3 +70,12 @@ class OrgUtils(object):
                 summary = summary + ', ' + name
 
         return summary
+
+    @classmethod
+    def build_staff_assignment_rule_for_agent(cls, agent_id:int, org_pos_id:int) -> str:
+        """
+         Creates a staff assignment rule selecting exactly the given agent.
+        """
+        return f"Agent(id={agent_id}) AND OrgPosition(id={org_pos_id})"
+    
+    
