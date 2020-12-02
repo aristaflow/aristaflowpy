@@ -32,7 +32,7 @@ repos:
           build|
           dist|
           node_modules|
-          .pydevproject|
+          \.pydevproject|
           swagger"""q
 
       language_version: python3.8
