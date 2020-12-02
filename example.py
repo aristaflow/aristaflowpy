@@ -82,6 +82,7 @@ def runtime_service_example(item: WorklistItem):
         # Configuration values of the activity
         act_instance: ActivityInstance = ssc.act_instance
         act_conf: ActivityConfiguration = act_instance.act_conf
+        print(act_conf)
         # access any configuration value (values is a python dict)
         # my_other_config_value = act_conf.values['My config key']
 
@@ -89,12 +90,14 @@ def runtime_service_example(item: WorklistItem):
         dc: DataContext = ssc.data_context
         # read input from here
         pvs_in: List[ParameterValue] = dc.values
+        print(pvs_in)
         # write output in there
         pvs_out: List[ParameterValue] = dc.output_values
+        print(pvs_out)
 
         # Done? -> signal the completion via REST
         rre.application_closed(ssc.session_id, body=dc)
-    except:
+    except Exception:
         rre.application_failed(999, ssc.session_id, body=ssc.data_context)
         raise
 

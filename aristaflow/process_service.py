@@ -63,7 +63,7 @@ class ProcessService(AbstractService):
         @param tpls The tpls list to fill with the template references
         @param inc The first or next iteration to consume and append to tpls.
         """
-        if inc == None:
+        if inc is None:
             return
         # append the tpls
         if inc.templ_refs:
@@ -84,7 +84,7 @@ class ProcessService(AbstractService):
     ) -> str:
         """Starts the newest version of the given process type, returns the logical ID of the started instance."""
         tpl = self.get_instantiable_template_by_type(process_type)
-        if tpl == None:
+        if tpl is None:
             raise Exception("Unknown process type: " + process_type)
         return self.start_by_id(tpl.id, callback_uri, input_data)
 
@@ -93,7 +93,7 @@ class ProcessService(AbstractService):
     ) -> str:
         """Starts a process given by the template id. Returns the logical ID of the started instance."""
         ic: InstanceControlApi = self._service_provider.get_service(InstanceControlApi)
-        if callback_uri == None:
+        if callback_uri is None:
             inst_creation_data = InstanceCreationData(sub_class="InstanceCreationData")
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
             return ic.create_and_start_instance(template_id, body=inst_creation_data)
@@ -111,7 +111,7 @@ class ProcessService(AbstractService):
     ) -> DataContainer:
         """Creates an instance data container for the given template, if required"""
         idc = None
-        if input_data != None and len(input_data) != 0:
+        if input_data is None and len(input_data) != 0:
             idc = ic.create_instance_data_container(template_id)
             pv: ParameterValue = None
             for pv in idc.values:
@@ -127,6 +127,6 @@ class ProcessService(AbstractService):
         im: InstanceManagerApi = self._service_provider.get_service(InstanceManagerApi)
         try:
             return im.get_instance_refs(body=[inst_id]).inst_refs[0]
-        except:
+        except Exception:
             logicl_id = im.get_logical_instance_ids(body=[inst_id]).inst_ids[0]
             return im.get_instance_refs(body=[logicl_id]).inst_refs[0]

@@ -20,7 +20,7 @@ class RemoteIteratorHandler(object):
         self._service_provider = service_provider
 
     def _consume(self, target: List, iterator_data, attrib_name: str, iter_api, iter_api_method):
-        if iterator_data == None:
+        if iterator_data is None:
             return
         if getattr(iterator_data, attrib_name):
             target += getattr(iterator_data, attrib_name)
@@ -34,7 +34,7 @@ class RemoteIteratorHandler(object):
         self, iterator_data, attrib_name: str, iter_api_type: Type, iter_api_method=None
     ) -> List:
         iter_api = self._service_provider.get_service(iter_api_type)
-        if iter_api_method == None:
+        if iter_api_method is None:
             iter_api_method = getattr(iter_api_type, "get_next")
         target = []
         self._consume(target, iterator_data, attrib_name, iter_api, iter_api_method)

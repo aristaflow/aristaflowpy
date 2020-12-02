@@ -47,7 +47,7 @@ class WorklistService(object):
 
     def get_worklist(self) -> List[ClientWorklistItem]:
         """Updates and returns the worklist of the current user"""
-        if self.__worklist != None:
+        if self.__worklist is not None:
             # perform update
             return self.update_worklist()
 
@@ -56,13 +56,13 @@ class WorklistService(object):
         )
         update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration()
         wlit: InitialIncClientWorklistData = None
-        if self.fetch_count != None:
+        if self.fetch_count is not None:
             wlit = wum.logon_and_create_client_worklist(body=update_conf, count=self.fetch_count)
         else:
             wlit = wum.logon_and_create_client_worklist(body=update_conf)
 
         # currently no items in the worklist
-        if wlit == None:
+        if wlit is None:
             return self.__items
 
         self.__iterate(self.__items, wlit)
@@ -83,7 +83,7 @@ class WorklistService(object):
         @param items The items list to fill with the update(s)
         @param inc The first or next iteration to consume and append to items.
         """
-        if inc == None:
+        if inc is None:
             return
         # append the items
         if inc.items_flat:
@@ -99,7 +99,7 @@ class WorklistService(object):
 
     def update_worklist(self) -> List[ClientWorklistItem]:
         """Updates the user's worklist and returns the items"""
-        if self.__worklist == None:
+        if self.__worklist is None:
             return self.get_worklist()
 
         wu: WorklistUpdateManagerApi = self.__service_provider.get_service(WorklistUpdateManagerApi)
@@ -109,7 +109,7 @@ class WorklistService(object):
             filter=self.__worklist.wu_conf.worklist_filter,
         )
 
-        if inc_updts != None:
+        if inc_updts is not None:
             updates: List[ClientWorklistItemUpdate] = []
             self.__iterate_updates(updates, inc_updts)
             self.__apply_worklist_updates(
@@ -121,7 +121,7 @@ class WorklistService(object):
         self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData
     ):
         """Consumes the given worklist update iterator and appends all retrieved updates to the provided updates list."""
-        if inc == None:
+        if inc is None:
             return
         if inc.item_updates:
             updates += inc.item_updates
