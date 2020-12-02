@@ -16,6 +16,7 @@ from af_runtime_service.models.data_context import DataContext
 from af_runtime_service.models.ebp_instance_reference import EbpInstanceReference
 from af_runtime_service.models.parameter_value import ParameterValue
 from af_runtime_service.models.simple_session_context import SimpleSessionContext
+from af_worklist_manager import ClientWorklistItemUpdate, WorklistUpdate
 from af_worklist_manager.models.af_activity_reference import AfActivityReference
 from af_worklist_manager.models.worklist_item import WorklistItem
 from aristaflow.client_platform import AristaFlowClientPlatform
@@ -40,7 +41,7 @@ def print_connection_info():
     print(f"Licensed to: {li.licensee}")
 
 
-print_connection_info()
+# print_connection_info()
 
 
 def print_template_info():
@@ -49,14 +50,29 @@ def print_template_info():
     print(f"Found instantiable templates: {len(tpl.templ_refs)}")
 
 
-print_template_info()
+# print_template_info()
 
 ws = cs.worklist_service
-
 items = ws.get_worklist()
+
 print(f"Found {len(items)} worklist items")
-ws.update_worklist()
-print(f"Found {len(items)} worklist items")
+
+
+def worklist_sse_push():
+    def worklist_updated(updates: List[ClientWorklistItemUpdate]):
+        print(f"Worklist updated, {len(items)} worklist items")
+
+    ws.add_update_listener(worklist_updated)
+    ws.enable_push_updates()
+    input("Waiting and showing for worklist updates via SSE. Press return key to continue.")
+
+
+def worklist_manual_update():
+    ws.update_worklist()
+    print(f"Found {len(items)} worklist items")
+
+
+# worklist_sse_push()
 
 
 def runtime_service_example(item: WorklistItem):
@@ -108,5 +124,5 @@ def runtime_service_example(item: WorklistItem):
 # print(items)
 
 # worklist item from the worklist
-item: WorklistItem = items[1]
-runtime_service_example(item)
+# item: WorklistItem = items[1]
+# runtime_service_example(item)

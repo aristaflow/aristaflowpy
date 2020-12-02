@@ -54,6 +54,13 @@ class Configuration(object):
     def autostart_timeout_seconds(self) -> int:
         return self.__autostart_timeout_seconds
 
+    @property
+    def sse_connect_retry_wait(self) -> float:
+        """
+        Sleep time in seconds between connection retries on lost SSE connections.
+        """
+        return 5.0
+
     def get_host(self, service_type: str, service_instance: str = None) -> str:
         """
         Returns the host definition for the given service type / instance, based on the configuration.

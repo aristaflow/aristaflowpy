@@ -1,5 +1,12 @@
+# -*- coding: utf-8 -*-
 # Default Python Libraries
-from typing import List, Union
+import asyncio
+import json
+from asyncio import sleep
+from typing import Generator, List, Set, Union
+
+# Third Party Libraries
+from requests import ConnectionError
 
 # AristaFlow REST Libraries
 from af_worklist_manager.api.inc_client_worklists_api import IncClientWorklistsApi
@@ -7,16 +14,35 @@ from af_worklist_manager.api.inc_worklist_update_api import IncWorklistUpdateApi
 from af_worklist_manager.api.worklist_update_manager_api import WorklistUpdateManagerApi
 from af_worklist_manager.models.client_worklist_item import ClientWorklistItem
 from af_worklist_manager.models.client_worklist_item_update import ClientWorklistItemUpdate
+from af_worklist_manager.models.client_worklist_rest_callback_data import (
+    ClientWorklistRestCallbackData,
+)
+from af_worklist_manager.models.client_worklist_sse_callback_data import (
+    ClientWorklistSseCallbackData,
+)
 from af_worklist_manager.models.inc_client_worklist_data import IncClientWorklistData
 from af_worklist_manager.models.inc_worklist_update_data import IncWorklistUpdateData
 from af_worklist_manager.models.initial_inc_client_worklist_data import InitialIncClientWorklistData
 from af_worklist_manager.models.initial_inc_worklist_update_data import InitialIncWorklistUpdateData
 from af_worklist_manager.models.update_interval import UpdateInterval
 from af_worklist_manager.models.worklist_revision import WorklistRevision
+from af_worklist_manager.models.worklist_update import WorklistUpdate
 from af_worklist_manager.models.worklist_update_configuration import WorklistUpdateConfiguration
 
+from .configuration import Configuration
 from .service_provider import ServiceProvider
 from .worklist_model import Worklist
+
+
+# signature for worklist updates
+def __update_listener(updates: List[ClientWorklistItemUpdate]):
+    pass
+
+
+WorklistUpdateListener = type(__update_listener)
+"""
+    Type for callback function for retrieving worklist updates
+"""
 
 
 class WorklistService(object):
@@ -26,35 +52,51 @@ class WorklistService(object):
     __worklist: Worklist = None
     __items: List[ClientWorklistItem] = None
     __service_provider: ServiceProvider = None
+    __worklist_callback: str = None
+    __worklist_update_listeners: Set[WorklistUpdateListener] = None
+    __af_conf: Configuration = None
 
-    def __init__(self, service_provider: ServiceProvider):
+    def __init__(self, service_provider: ServiceProvider, configuration: Configuration):
         self.__items = []
         self.__service_provider = service_provider
+        self.__worklist_update_listeners = set()
+        self.__af_conf = configuration
 
-    def create_worklist_update_configuration(self) -> WorklistUpdateConfiguration:
-        """Creates a default worklist update configuration"""
+    def create_worklist_update_configuration(self, push: bool) -> WorklistUpdateConfiguration:
+        """Creates a default worklist update configuration
+        :param bool push: If set to true, create a worklist update configuration for push notifications.
+        """
         update_intervals: list[UpdateInterval] = []
+        if push:
+            update_intervals.append(UpdateInterval(0, 200))
+
         # worklistFilter: NO_TL or TL_ONLY
         # notify_only: if True, the initial worklist will not be returned but
         # pushed
         wuc = WorklistUpdateConfiguration(
-            update_mode_threshold=3000,
+            update_mode_threshold=0,
             update_intervals=update_intervals,
             worklist_filter="NO_TL",
             notify_only=False,
         )
         return wuc
 
-    def get_worklist(self) -> List[ClientWorklistItem]:
-        """Updates and returns the worklist of the current user"""
+    def get_worklist(self, worklist_callback: str = None) -> List[ClientWorklistItem]:
+        """
+        Updates and returns the worklist of the current user
+        :param str worklist_callback: Optionally an URL implementing the callback endpoint for push updates
+        """
         if self.__worklist is not None:
+            # simply return the items if push notifications are enabled
+            if self.__worklist_callback is not None:
+                return self.__items
             # perform update
             return self.update_worklist()
 
         wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
             WorklistUpdateManagerApi
         )
-        update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration()
+        update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration(True)
         wlit: InitialIncClientWorklistData = None
         if self.fetch_count is not None:
             wlit = wum.logon_and_create_client_worklist(body=update_conf, count=self.fetch_count)
@@ -69,10 +111,123 @@ class WorklistService(object):
 
         # remember the current worklist meta data
         self.__worklist = Worklist(
-            wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf
+            wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf, wlit.agent
         )
 
+        if worklist_callback is not None:
+            callbackData = ClientWorklistRestCallbackData(
+                worklist_callback=worklist_callback,
+                sub_class="ClientWorklistRestCallbackData",
+                id=self.__worklist.worklist_id,
+                client_worklist_id=self.__worklist.client_worklist_id,
+                agent=self.__worklist.agent,
+                revision=self.__worklist.revision,
+                wu_conf=self.__worklist.wu_conf,
+            )
+            wum.register_client_worklist_callback(callbackData)
+            self.__worklist_callback = worklist_callback
+
         return self.__items
+
+    def enable_push_updates(self):
+        """
+        Enable automatic worklist updates using SSE push notifications.
+        """
+        asyncio.run_coroutine_threadsafe(
+            self._process_push_updates(), self.__service_provider.push_event_loop
+        )
+
+    async def _process_push_updates(self):
+        """
+        Coroutine retrieving SSE push notifications for the worklist, handling registration and reconnects
+        """
+        while True:
+            # print("Establishing SSE connection...")
+            try:
+                sse_connection_id, sse_client = self.__service_provider.connect_sse(
+                    WorklistUpdateManagerApi
+                )
+                while True:
+                    # print("SSE connection established, registering for worklist push...")
+                    callback_data = ClientWorklistSseCallbackData(
+                        sse_conn=sse_connection_id,
+                        sub_class="ClientWorklistSseCallbackData",
+                        id=self.__worklist.worklist_id,
+                        client_worklist_id=self.__worklist.client_worklist_id,
+                        agent=self.__worklist.agent,
+                        revision=self.__worklist.revision,
+                        wu_conf=self.__worklist.wu_conf,
+                    )
+                    wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
+                        WorklistUpdateManagerApi
+                    )
+                    wum.register_client_worklist_sse(callback_data)
+                    # print("Worklist registered for SSE push")
+                    self.__push_sse_client = sse_client
+                    for event in sse_client:
+                        if event.event == "SseConnectionEstablished":
+                            # print('SSE session was re-established, re-registering..')
+                            callback_data.sse_conn = event.data
+                            callback_data.revision = (self.__worklist.revision,)
+                            wum.register_client_worklist_sse(callback_data)
+                            # print("Worklist registered again for SSE push")
+                        elif event.event == "client-worklist-update":
+                            # print("Worklist update received")
+                            try:
+                                update_dict = json.loads(event.data)
+                                update: WorklistUpdate = self.__service_provider.deserialize(
+                                    update_dict, WorklistUpdate
+                                )
+                                self.__apply_worklist_updates(
+                                    update.source_revision,
+                                    update.target_revision,
+                                    update.item_updates,
+                                )
+                                # call the listeners
+                                self._notify_worklist_update_listeners(update.item_updates)
+                            except Exception as e:
+                                print("Couldn't deserialize and apply update: ", event, e)
+                        else:
+                            print(f"Unknown worklist SSE push event {event.event} received")
+            except ConnectionError:
+                # re-establish connection after some wait time
+                # print("SSE disconnected...")
+                await sleep(self.__af_conf.sse_connect_retry_wait)
+            except Exception as e:
+                print("Unknown exception caught during SSE handling", e.__class__)
+                raise
+            finally:
+                self.__push_sse_client = None
+
+    def add_update_listener(self, listener: WorklistUpdateListener):
+        """
+        Adds a listener which is called after a worklist update was received and applied.
+        """
+        self.__worklist_update_listeners.add(listener)
+
+    def remove_update_listener(self, listener: WorklistUpdateListener):
+        """
+        Removes the given worklist update listener
+        """
+        self.__worklist_update_listeners.remove(listener)
+
+    def _notify_worklist_update_listeners(self, updates: List[ClientWorklistItemUpdate]):
+        """
+        Notifies all registered worklist update listeners
+        """
+        for listener in self.__worklist_update_listeners:
+            try:
+                listener(updates)
+            except Exception as e:
+                print("Caught exception while notifying listener:", e)
+
+    def worklist_meta_data(self) -> Worklist:
+        """
+        Returns the worklist meta data, like ID, current revision etc., don't modify.
+        """
+        if self.__worklist is None:
+            self.get_worklist()
+        return self.__worklist
 
     def __iterate(
         self,
@@ -115,6 +270,7 @@ class WorklistService(object):
             self.__apply_worklist_updates(
                 inc_updts.source_revision, inc_updts.target_revision, updates
             )
+            self._notify_worklist_update_listeners(updates)
         return self.__items
 
     def __iterate_updates(

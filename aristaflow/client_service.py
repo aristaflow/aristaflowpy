@@ -179,7 +179,7 @@ class AristaFlowClientService(object):
     @property
     def worklist_service(self):
         if self.__worklist_service is None:
-            self.__worklist_service = WorklistService(self.__service_provider)
+            self.__worklist_service = WorklistService(self.__service_provider, self.__af_conf)
         return self.__worklist_service
 
     @property

@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
 # Default Python Libraries
+from asyncio.base_events import BaseEventLoop
+from importlib import import_module
 from multiprocessing.pool import ThreadPool
-from typing import Type, TypeVar
+from typing import Generator, Tuple, Type, TypeVar
+
+# Third Party Libraries
+# from aiohttp_sse_client import client as sse_client
+import sseclient
 
 # AristaFlow REST Libraries
 from af_org_model_manager.models.client_session_details import ClientSessionDetails
@@ -23,12 +30,20 @@ class ServiceProvider(object):
     __csd: ClientSessionDetails = None
     # thread pool for async requests
     __async_thread_pool: ThreadPool = None
+    # event loop for SSE push notifications
+    __push_event_loop: BaseEventLoop = None
 
-    def __init__(self, rest_package_registry: RestPackageRegistry, async_thread_pool: ThreadPool):
+    def __init__(
+        self,
+        rest_package_registry: RestPackageRegistry,
+        async_thread_pool: ThreadPool,
+        push_event_loop: BaseEventLoop,
+    ):
         self.__rest_package_registry = rest_package_registry
         self.__rest_packages = {}
         self.__services = {}
         self.__async_thread_pool = async_thread_pool
+        self.__push_event_loop = push_event_loop
 
     def __get_package_instance(self, service_type: Type) -> RestPackageInstance:
         """Returns the (cached) ApiClient instance for the package of the given service_type.
@@ -89,3 +104,37 @@ class ServiceProvider(object):
         """Serialize REST model object"""
         klass = type(obj)
         return self.__get_package_instance(klass).serialize(obj)
+
+    def get_arista_flow_service_api(self, klass: Type):
+        """
+        Returns the AristaFlowApi object for the endpoint the given klass belongs to.
+        """
+        package_name = self.__rest_package_registry.get_package_name(klass)
+        package_name = package_name + ".api.arista_flow_service_api"
+        afsapi_module = import_module(package_name)
+        afsapi_class = afsapi_module.__getattribute__("AristaFlowServiceApi")
+        return self.get_service(afsapi_class)
+
+    @property
+    def push_event_loop(self):
+        """
+        The asyncio event loop to be used async push notifications
+        """
+        return self.__push_event_loop
+
+    def connect_sse(self, klass: Type) -> Tuple[str, Generator]:
+        """
+        Creates a new SSE connection for the given endpoint
+        """
+        pkg = self.__rest_package_registry.get_rest_package(klass)
+        service_type = pkg.service_type_name
+        host = self.__rest_package_registry.af_conf.get_host(service_type)
+        register_sse_endpoint = host + "/sse"
+        kwargs = {}
+        kwargs["headers"] = {}
+        kwargs["headers"]["x-AF-Security-Token"] = self.__csd.token
+        kwargs["verify"] = self.__rest_package_registry.af_conf.verify_ssl
+
+        sse: sseclient.SSEClient = sseclient.SSEClient(register_sse_endpoint, **kwargs)
+        initial = next(sse)
+        return (initial.data, sse)
