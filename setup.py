@@ -4,7 +4,9 @@
 
 """
 
-from setuptools import setup, find_packages  # noqa: H301
+# Third Party Libraries
+from setuptools import find_packages, setup  # noqa: H301
+
 
 # To install the library, run the following
 #
@@ -27,5 +29,5 @@ setup(
     include_package_data=True,
     long_description="""\
         AristaFlow BPM Python integration
-        """
+        """,
 )

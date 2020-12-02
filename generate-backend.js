@@ -312,6 +312,6 @@ downloadSwagger()
   })
   .then(() => {
     console.log(`
-  Done 
+  Done
   `);
   });

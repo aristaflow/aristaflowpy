@@ -1,15 +1,22 @@
-
 class Configuration(object):
     # TODO remote (html) runtime manager
     # TODO PIR
-    def __init__(self, base_url: str, caller_uri: str, verify_ssl=True, pre_shared_key:str = None, application_name:str=None, async_thread_pool_size:int = None,     
-    autostart_timeout_seconds = 30):
+    def __init__(
+        self,
+        base_url: str,
+        caller_uri: str,
+        verify_ssl=True,
+        pre_shared_key: str = None,
+        application_name: str = None,
+        async_thread_pool_size: int = None,
+        autostart_timeout_seconds=30,
+    ):
         """
         :param baseUrl
         """
         if base_url.endswith("/"):
-            base_url = base_url[0:len(base_url) - 1]
-        if not(base_url.endswith("AristaFlowREST")):
+            base_url = base_url[0 : len(base_url) - 1]
+        if not (base_url.endswith("AristaFlowREST")):
             base_url = base_url + "/AristaFlowREST"
         self.__baseUrl = base_url
         self.__caller_uri = caller_uri
@@ -55,12 +62,12 @@ class Configuration(object):
         :return: str The host value for the requested service
         """
         if service_instance == None:
-            if service_type == 'RuntimeManager':
-                service_instance = 'RemoteHTMLRuntimeManager'
+            if service_type == "RuntimeManager":
+                service_instance = "RemoteHTMLRuntimeManager"
             else:
                 service_instance = service_type
         return self.baseUrl + "/" + service_type + "/" + service_instance
 
     def get_debug(self, service_type: str, service_instance: str = None) -> bool:
         return False
-        #return service_type == "RuntimeManager"
+        # return service_type == "RuntimeManager"
