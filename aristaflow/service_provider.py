@@ -73,7 +73,7 @@ class ServiceProvider(object):
 
     def authenticated(self, csd: ClientSessionDetails):
         """set the authentication for all ApiClient objects"""
-        if self.__csd != None:
+        if self.__csd is not None:
             raise Exception("Already authenticated")
 
         self.__csd = csd

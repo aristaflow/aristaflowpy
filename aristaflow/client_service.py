@@ -84,15 +84,15 @@ class AristaFlowClientService(object):
     @property
     def is_authenticated(self) -> bool:
         """Returns true, if this client service is already authenticated"""
-        return self.__csd != None
+        return self.__csd is None
 
     def authenticate(self, username: str, password: str = None, org_pos_id: int = None):
-        if self.__csd != None:
+        if self.__csd is not None:
             raise Exception("Already authenticated")
 
         auth_data: list[AuthenticationData] = []
         auth_data.append(AuthDataUserName(username, sub_class="AuthDataUserName"))
-        if org_pos_id != None:
+        if org_pos_id is not None:
             auth_data.append(AuthDataOrgPos(org_pos_id, sub_class="AuthDataOrgPos"))
         psk = self.__af_conf.pre_shared_key
         method: str = None
@@ -113,7 +113,7 @@ class AristaFlowClientService(object):
 
         # use a provided application name
         if self.__af_conf.application_name:
-            if org_pos_id == None:
+            if org_pos_id is None:
                 # if an application name is provided, an org position ID must be used as well
                 # get the org positions
                 agents: list[QualifiedAgent] = gsm.pre_authenticate_method(method, body=auth_data)
@@ -178,37 +178,37 @@ class AristaFlowClientService(object):
 
     @property
     def worklist_service(self):
-        if self.__worklist_service == None:
+        if self.__worklist_service is None:
             self.__worklist_service = WorklistService(self.__service_provider)
         return self.__worklist_service
 
     @property
     def process_service(self):
-        if self.__process_service == None:
+        if self.__process_service is None:
             self.__process_service = ProcessService(self.__service_provider)
         return self.__process_service
 
     @property
     def delegation_service(self):
-        if self.__delegation_service == None:
+        if self.__delegation_service is None:
             self.__delegation_service = DelegationService(self.__service_provider)
         return self.__delegation_service
 
     @property
     def absence_service(self):
-        if self.__absence_service == None:
+        if self.__absence_service is None:
             self.__absence_service = AbsenceService(self.__service_provider)
         return self.__absence_service
 
     @property
     def execution_history_service(self):
-        if self.__execution_history_service == None:
+        if self.__execution_history_service is None:
             self.__execution_history_service = ExecutionHistoryService(self.__service_provider)
         return self.__execution_history_service
 
     @property
     def org_model_service(self):
-        if self.__org_model_service == None:
+        if self.__org_model_service is None:
             self.__org_model_service = OrgModelService(self.__service_provider)
         return self.__org_model_service
 
@@ -216,7 +216,7 @@ class AristaFlowClientService(object):
         """
         Starts the given HTML GUI worklist item using the Remote HTML Runtime Manager
         """
-        if item == None:
+        if item is None:
             raise Exception("No worklist item provided")
         # accept user form and HTMLContext based activities
         if not (self.is_html_activity(item)):
@@ -239,7 +239,7 @@ class AristaFlowClientService(object):
         )
         # "AVAILABLE", "ASSIGNED", "STARTED", "SUSPENDED", "ENQUIRED"
         if item.state == "AVAILABLE" or item.state == "ASSIGNED":
-            if callback_url != None:
+            if callback_url is not None:
                 cb_data = ActivityRestCallbackData(
                     sub_class="ActivityRestCallbackData",
                     notification_callback=callback_url,
@@ -249,7 +249,7 @@ class AristaFlowClientService(object):
             else:
                 gc = sas.start_activity(body=ebp_ir)
         else:
-            if callback_url != None:
+            if callback_url is not None:
                 cb_data = ActivityRestCallbackData(
                     sub_class="ActivityRestCallbackData",
                     notification_callback=callback_url,

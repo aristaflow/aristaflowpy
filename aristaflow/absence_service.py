@@ -65,7 +65,7 @@ class AbsenceService(AbstractService):
         """Returns the absence information for the given agents, or for all agents if no agent is provided"""
         wum: WorklistUpdateManagerApi = self._service_provider.get_service(WorklistUpdateManagerApi)
         pol_res: PolicyResolutionApi = self._service_provider.get_service(PolicyResolutionApi)
-        if qas == None or len(qas) == 0:
+        if qas is None or len(qas) == 0:
             qas = self.get_possible_absentees()
 
         res: List[AbsenceInformation] = []
@@ -74,7 +74,7 @@ class AbsenceService(AbstractService):
             is_absent_now = False
             substitute_summary = ""
             substitute_agents = []
-            if ai != None:
+            if ai is not None:
                 unix_millis_now = TO_BPM_DATE(datetime.utcnow())
                 # from date not in the future
                 absence_started = ai.from_date < unix_millis_now

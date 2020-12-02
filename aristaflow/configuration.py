@@ -61,7 +61,7 @@ class Configuration(object):
         :param service_instance: Optionally the simple BPM service instance name, e.g. RemoteHTMLRuntimeManager
         :return: str The host value for the requested service
         """
-        if service_instance == None:
+        if service_instance is None:
             if service_type == "RuntimeManager":
                 service_instance = "RemoteHTMLRuntimeManager"
             else:

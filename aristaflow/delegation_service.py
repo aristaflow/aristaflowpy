@@ -26,7 +26,7 @@ class DelegationService(AbstractService):
         for item in items:
             recs = self._get_delegation_recipients(item)
             rec: QualifiedAgent = None
-            if recipient_set == None:
+            if recipient_set is None:
                 # initial iteration: add what is there
                 recipient_set = {}
                 for rec in recs:
@@ -44,7 +44,7 @@ class DelegationService(AbstractService):
                         ):
                             found = True
                             break
-                    if found == False:
+                    if not found:
                         keys_to_delete.append(added_rec_key)
                 # remove from target set all entries which are not found in the delegation
                 # recipients of the current item_id
@@ -71,7 +71,7 @@ class DelegationService(AbstractService):
         cur_iter: Union[QaInitialRemoteIteratorData, QaRemoteIteratorData],
     ):
         """Reads up the given delegation recipients iterator"""
-        if cur_iter == None:
+        if cur_iter is None:
             return
         if cur_iter.agents:
             recipients += cur_iter.agents

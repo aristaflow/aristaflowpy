@@ -30,7 +30,7 @@ class RestPackage(object):
         """
         :return: The configuration of the REST package
         """
-        if self.__config == None:
+        if self.__config is None:
             config_module = import_module(self.package_name + ".configuration")
             config_class = config_module.__getattribute__("Configuration")
             config = config_class()
@@ -139,7 +139,7 @@ class RestPackageInstance(object):
 
     @property
     def api_client(self) -> object:
-        if self.__api_client == None:
+        if self.__api_client is None:
             self.__api_client = self.__rest_package.build_api_client()
             # replace the default thread pool with our own, shared one
             orig_pool = self.__api_client.pool

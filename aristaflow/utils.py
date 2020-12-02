@@ -15,7 +15,7 @@ class Version(object):
 
         m: re = self.__pattern.match(v)
         # invalid version string
-        if m == None:
+        if m is None:
             return 0
 
         gs = m.groups()
@@ -23,7 +23,7 @@ class Version(object):
         places = len(gs)
         for i in range(places):
             p = gs[i]
-            if p == None:
+            if p is None:
                 break
             if len(p) > 3:
                 # ugh... unsupported
