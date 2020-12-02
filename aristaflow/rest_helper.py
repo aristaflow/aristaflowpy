@@ -1,14 +1,17 @@
+# Default Python Libraries
 from importlib import import_module
-
-from aristaflow.configuration import Configuration
 from multiprocessing.pool import ThreadPool
 from uuid import uuid4
+
+# AristaFlow REST Libraries
+from aristaflow.configuration import Configuration
 
 
 class RestPackage(object):
     """
     Represents an AristaFlow REST endpoint package, e.g. af_execution_manager.
     """
+
     package_name: str = None
     # cached configuration as this can be used across all instances
     __config: object = None
@@ -45,13 +48,12 @@ class RestPackage(object):
         ac_module = import_module(self.package_name + ".api_client")
         ac_class = ac_module.__getattribute__("ApiClient")
         api_client = ac_class(self.config)
-        api_client.set_default_header(
-            "x-AF-Caller-URI", self.af_conf.caller_uri)
+        api_client.set_default_header("x-AF-Caller-URI", self.af_conf.caller_uri)
         # Runtime Service requires matching session IDs for its start/signal calls
         # since we can't set them on a per-request basis, set a random session
         # id for the lifetime of the service instance
-        if self.package_name.startswith('af_runtime_service'):
-            api_client.set_default_header('x-AF-Session-ID', str(uuid4()))
+        if self.package_name.startswith("af_runtime_service"):
+            api_client.set_default_header("x-AF-Session-ID", str(uuid4()))
         return api_client
 
     @property
@@ -85,7 +87,11 @@ class RestPackage(object):
         """
         The AristaFlow default hierarchical instance name, e.g. /ExecutionManager/ExecutionManager
         """
-        service_instance_name: str = self.service_type_name if self.service_type_name != "RuntimeManager" else "RemoteHTMLRuntimeManager"
+        service_instance_name: str = (
+            self.service_type_name
+            if self.service_type_name != "RuntimeManager"
+            else "RemoteHTMLRuntimeManager"
+        )
         return "/" + self.service_type_name + "/" + service_instance_name
 
 
@@ -123,10 +129,11 @@ class RestPackageInstance(object):
     A REST package instance, ie. a REST package with an ApiClient object to be used for
     all of its services
     """
+
     __rest_package: RestPackage = None
     __api_client: object = None
 
-    def __init__(self, rest_package: RestPackage, async_thread_pool:ThreadPool):
+    def __init__(self, rest_package: RestPackage, async_thread_pool: ThreadPool):
         self.__rest_package = rest_package
         self.__async_thread_pool = async_thread_pool
 
@@ -137,18 +144,16 @@ class RestPackageInstance(object):
             # replace the default thread pool with our own, shared one
             orig_pool = self.__api_client.pool
             self.__api_client.pool = self.__async_thread_pool
-            orig_pool.close() # no need to join(), work hadn't started yet
+            orig_pool.close()  # no need to join(), work hadn't started yet
         return self.__api_client
-    
+
     def deserialize(self, data, klass):
-        """ Deserialize data using the given class of the generated OpenAPI models. 
-        """
+        """Deserialize data using the given class of the generated OpenAPI models."""
         ac = self.api_client
-        #print(dir(ac))
+        # print(dir(ac))
         return ac._ApiClient__deserialize(data, klass)
-    
+
     def serialize(self, obj):
-        """ Serialize REST model object 
-        """
+        """Serialize REST model object"""
         ac = self.api_client
         return ac.sanitize_for_serialization(obj)

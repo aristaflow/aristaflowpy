@@ -1,5 +1,7 @@
+# Default Python Libraries
 from typing import List, Union
 
+# AristaFlow REST Libraries
 from af_worklist_manager.api.inc_client_worklists_api import IncClientWorklistsApi
 from af_worklist_manager.api.inc_worklist_update_api import IncWorklistUpdateApi
 from af_worklist_manager.api.worklist_update_manager_api import WorklistUpdateManagerApi
@@ -23,37 +25,39 @@ class WorklistService(object):
     fetch_count: int = None
     __worklist: Worklist = None
     __items: List[ClientWorklistItem] = None
-    __service_provider:ServiceProvider = None
+    __service_provider: ServiceProvider = None
 
-    def __init__(self, service_provider:ServiceProvider):
+    def __init__(self, service_provider: ServiceProvider):
         self.__items = []
         self.__service_provider = service_provider
 
     def create_worklist_update_configuration(self) -> WorklistUpdateConfiguration:
-        """ Creates a default worklist update configuration
-        """
+        """Creates a default worklist update configuration"""
         update_intervals: list[UpdateInterval] = []
         # worklistFilter: NO_TL or TL_ONLY
         # notify_only: if True, the initial worklist will not be returned but
         # pushed
         wuc = WorklistUpdateConfiguration(
-            update_mode_threshold=3000, update_intervals=update_intervals, worklist_filter="NO_TL", notify_only=False)
+            update_mode_threshold=3000,
+            update_intervals=update_intervals,
+            worklist_filter="NO_TL",
+            notify_only=False,
+        )
         return wuc
 
     def get_worklist(self) -> List[ClientWorklistItem]:
-        """ Updates and returns the worklist of the current user
-        """
+        """Updates and returns the worklist of the current user"""
         if self.__worklist != None:
             # perform update
             return self.update_worklist()
 
         wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
-            WorklistUpdateManagerApi)
+            WorklistUpdateManagerApi
+        )
         update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration()
         wlit: InitialIncClientWorklistData = None
         if self.fetch_count != None:
-            wlit = wum.logon_and_create_client_worklist(
-                body=update_conf, count=self.fetch_count)
+            wlit = wum.logon_and_create_client_worklist(body=update_conf, count=self.fetch_count)
         else:
             wlit = wum.logon_and_create_client_worklist(body=update_conf)
 
@@ -65,14 +69,19 @@ class WorklistService(object):
 
         # remember the current worklist meta data
         self.__worklist = Worklist(
-            wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf)
+            wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf
+        )
 
         return self.__items
 
-    def __iterate(self, items: List[ClientWorklistItem], inc: Union[InitialIncClientWorklistData, IncClientWorklistData]):
-        """ Consumes an incremental client worklist until its iterator is used up
+    def __iterate(
+        self,
+        items: List[ClientWorklistItem],
+        inc: Union[InitialIncClientWorklistData, IncClientWorklistData],
+    ):
+        """Consumes an incremental client worklist until its iterator is used up
         @param items The items list to fill with the update(s)
-        @param inc The first or next iteration to consume and append to items. 
+        @param inc The first or next iteration to consume and append to items.
         """
         if inc == None:
             return
@@ -84,33 +93,34 @@ class WorklistService(object):
             return
 
         # fetch next
-        inc_cl: IncClientWorklistsApi = self.__service_provider.get_service(
-            IncClientWorklistsApi)
-        next_it: IncClientWorklistData = inc_cl.inc_client_wl_get_next(
-            inc.inc_wl_id)
+        inc_cl: IncClientWorklistsApi = self.__service_provider.get_service(IncClientWorklistsApi)
+        next_it: IncClientWorklistData = inc_cl.inc_client_wl_get_next(inc.inc_wl_id)
         self.__iterate(items, next_it)
 
     def update_worklist(self) -> List[ClientWorklistItem]:
-        """ Updates the user's worklist and returns the items
-        """
+        """Updates the user's worklist and returns the items"""
         if self.__worklist == None:
             return self.get_worklist()
 
-        wu: WorklistUpdateManagerApi = self.__service_provider.get_service(
-            WorklistUpdateManagerApi)
-        inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(self.__worklist.worklist_id, body=self.__worklist.revision,
-                                                                          filter=self.__worklist.wu_conf.worklist_filter)
+        wu: WorklistUpdateManagerApi = self.__service_provider.get_service(WorklistUpdateManagerApi)
+        inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(
+            self.__worklist.worklist_id,
+            body=self.__worklist.revision,
+            filter=self.__worklist.wu_conf.worklist_filter,
+        )
 
         if inc_updts != None:
             updates: List[ClientWorklistItemUpdate] = []
             self.__iterate_updates(updates, inc_updts)
             self.__apply_worklist_updates(
-                inc_updts.source_revision, inc_updts.target_revision, updates)
+                inc_updts.source_revision, inc_updts.target_revision, updates
+            )
         return self.__items
 
-    def __iterate_updates(self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData):
-        """ Consumes the given worklist update iterator and appends all retrieved updates to the provided updates list. 
-        """
+    def __iterate_updates(
+        self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData
+    ):
+        """Consumes the given worklist update iterator and appends all retrieved updates to the provided updates list."""
         if inc == None:
             return
         if inc.item_updates:
@@ -120,26 +130,31 @@ class WorklistService(object):
             return
 
         # fetch next
-        iwua: IncWorklistUpdateApi = self.__service_provider.get_service(
-            IncWorklistUpdateApi)
-        next_it: IncWorklistUpdateData = iwua.inc_wl_updt_get_next(
-            inc.inc_upd_id)
+        iwua: IncWorklistUpdateApi = self.__service_provider.get_service(IncWorklistUpdateApi)
+        next_it: IncWorklistUpdateData = iwua.inc_wl_updt_get_next(inc.inc_upd_id)
         self.__iterate_updates(updates, next_it)
 
-    def __apply_worklist_updates(self, source_revision: WorklistRevision, target_revision: int,
-                                 updates: List[ClientWorklistItemUpdate]):
-        """ Applies the provided worklist updates to self.__items. Checks the consistency to the source revision,
-            and performs a full update if the state does not fit. Sets the new target revision in self.__worklist.
+    def __apply_worklist_updates(
+        self,
+        source_revision: WorklistRevision,
+        target_revision: int,
+        updates: List[ClientWorklistItemUpdate],
+    ):
+        """Applies the provided worklist updates to self.__items. Checks the consistency to the source revision,
+        and performs a full update if the state does not fit. Sets the new target revision in self.__worklist.
         """
-        if self.__worklist.revision.update_count != source_revision.update_count or self.__worklist.revision.initialisation_date != source_revision.initialisation_date:
+        if (
+            self.__worklist.revision.update_count != source_revision.update_count
+            or self.__worklist.revision.initialisation_date != source_revision.initialisation_date
+        ):
             # out of order update, clear and re-fetch everything
             self.__items.clear()
             self.__worklist = None
             self.get_worklist()
             return
 
-        #print(f'Applying {len(updates)} updates')
-        #print(updates)
+        # print(f'Applying {len(updates)} updates')
+        # print(updates)
 
         for update in updates:
             self.__apply_worklist_update(update)
@@ -148,8 +163,7 @@ class WorklistService(object):
         self.__worklist.revision.update_count = target_revision
 
     def __apply_worklist_update(self, update: ClientWorklistItemUpdate):
-        """ Applies the given update to __items
-        """
+        """Applies the given update to __items"""
         update_type = update.update_type
         item = update.item
         if update_type == "CHANGED":
@@ -166,9 +180,8 @@ class WorklistService(object):
             raise RuntimeError("Unknown update type: " + update_type)
 
     def __replace_or_add_item(self, item: ClientWorklistItem):
-        """ Replaces or adds the given worklist item in self.__items
-        """
-        #print('__replace_or_add_item: __items=', self.__items)
+        """Replaces or adds the given worklist item in self.__items"""
+        # print('__replace_or_add_item: __items=', self.__items)
         for i in range(len(self.__items)):
             val = self.__items[i]
             if item.id == val.id:
@@ -178,21 +191,19 @@ class WorklistService(object):
         self.__items.append(item)
 
     def __remove_item(self, item: ClientWorklistItem):
-        """ Removes the given worklist item from self.__items
-        """
+        """Removes the given worklist item from self.__items"""
         for val in self.__items:
             if item.id == val.id:
                 self.__items.remove(val)
                 return
 
-    def find_item_by_id(self, item_id:str) -> ClientWorklistItem:
-        """ Finds a worklist item by its worklist item id. Returns none, if not in the worklist of the user.
-        """
-        #print(f'Finding item with id {item_id}')
+    def find_item_by_id(self, item_id: str) -> ClientWorklistItem:
+        """Finds a worklist item by its worklist item id. Returns none, if not in the worklist of the user."""
+        # print(f'Finding item with id {item_id}')
         self.update_worklist()
-        #print(self.__items)
+        # print(self.__items)
         for item in self.__items:
             if item.id == item_id:
-                #print('Found')
+                # print('Found')
                 return item
         return None
