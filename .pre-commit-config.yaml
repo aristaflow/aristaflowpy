@@ -21,7 +21,7 @@ repos:
   hooks:
     - id: black
       args: # arguments to configure black
-        - --line-length=88
+        - --line-length=100
         - --include='\.pyi?$'
 
         # these folders wont be formatted by black
@@ -34,7 +34,10 @@ repos:
           _build|
           buck-out|
           build|
-          dist"""q
+          dist|
+          node_modules|
+          .pydevproject|
+          swagger"""q
 
       language_version: python3.8
 
@@ -46,7 +49,7 @@ repos:
     - id: flake8
       args: # arguments to configure flake8
         # making isort line length compatible with black
-        - "--max-line-length=88"
+        - "--max-line-length=100"
         - "--max-complexity=18"
         - "--select=B,C,E,F,W,T4,B9"
 
