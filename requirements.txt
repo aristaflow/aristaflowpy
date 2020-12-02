@@ -7,3 +7,4 @@ af_licence_manager >= 1.0.0
 af_process_image_renderer >= 1.0.0
 af_remote_html_runtime_manager >= 1.0.0
 af_simple_process_image_renderer >= 1.0.0
+pre-commit >= 2.9.2
