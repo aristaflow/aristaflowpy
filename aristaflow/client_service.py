@@ -84,7 +84,7 @@ class AristaFlowClientService(object):
     @property
     def is_authenticated(self) -> bool:
         """Returns true, if this client service is already authenticated"""
-        return self.__csd is None
+        return self.__csd is not None
 
     def authenticate(self, username: str, password: str = None, org_pos_id: int = None):
         if self.__csd is not None:

@@ -111,7 +111,7 @@ class ProcessService(AbstractService):
     ) -> DataContainer:
         """Creates an instance data container for the given template, if required"""
         idc = None
-        if input_data is None and len(input_data) != 0:
+        if input_data is not None and len(input_data) != 0:
             idc = ic.create_instance_data_container(template_id)
             pv: ParameterValue = None
             for pv in idc.values:

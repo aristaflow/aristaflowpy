@@ -2,6 +2,7 @@
 # Default Python Libraries
 import asyncio
 import json
+import traceback
 from asyncio import sleep
 from typing import Generator, List, Set, Union
 
@@ -55,6 +56,7 @@ class WorklistService(object):
     __worklist_callback: str = None
     __worklist_update_listeners: Set[WorklistUpdateListener] = None
     __af_conf: Configuration = None
+    __push_sse_client = None
 
     def __init__(self, service_provider: ServiceProvider, configuration: Configuration):
         self.__items = []
@@ -133,6 +135,8 @@ class WorklistService(object):
         """
         Enable automatic worklist updates using SSE push notifications.
         """
+        if self.__push_sse_client is not None:
+            return
         asyncio.run_coroutine_threadsafe(
             self._process_push_updates(), self.__service_provider.push_event_loop
         )
@@ -220,6 +224,7 @@ class WorklistService(object):
                 listener(updates)
             except Exception as e:
                 print("Caught exception while notifying listener:", e)
+                traceback.print_exc()
 
     def worklist_meta_data(self) -> Worklist:
         """
@@ -256,6 +261,9 @@ class WorklistService(object):
         """Updates the user's worklist and returns the items"""
         if self.__worklist is None:
             return self.get_worklist()
+
+        if self.__push_sse_client is not None:
+            return self.__items
 
         wu: WorklistUpdateManagerApi = self.__service_provider.get_service(WorklistUpdateManagerApi)
         inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(
