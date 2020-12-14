@@ -1,7 +1,7 @@
 # AristaFlow-PY
 
 
-## Examples 
+## Examples
 The usage of all AristaFlow-PY functions requires an
 `AristaFlowClientPlatform` with a valid `Configuration`. These can be
 defined globally and used for all function calls.
@@ -22,8 +22,12 @@ arf_platform = AristaFlowClientPlatform(arf_conf)
 def get_worklist(user, password):
     arf_cs = arf_platform.get_client_service()
     arf_cs.authenticate(user, password)
-    cs = arf_platform.get_client_service()
 
-    ws = cs.worklist_service
+    ws = arf_cs.worklist_service
     return ws.get_worklist()
 ```
+
+## Development
+Automatic code formatting and import sorting using the pre-commit package is required.
+- Install the `pre-commit` package in your python environment
+- Install the pre-commit hook: `pre-commit install`
