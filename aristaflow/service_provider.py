@@ -3,7 +3,7 @@
 from asyncio.base_events import BaseEventLoop
 from importlib import import_module
 from multiprocessing.pool import ThreadPool
-from typing import Generator, Tuple, Type, TypeVar
+from typing import Dict, Generator, Tuple, Type, TypeVar
 
 # Third Party Libraries
 # from aiohttp_sse_client import client as sse_client
@@ -100,7 +100,7 @@ class ServiceProvider(object):
         """Deserialize data using the given class of the generated OpenAPI models."""
         return self.__get_package_instance(klass).deserialize(data, klass)
 
-    def serialize(self, obj):
+    def serialize(self, obj) -> Dict:
         """Serialize REST model object"""
         klass = type(obj)
         return self.__get_package_instance(klass).serialize(obj)
