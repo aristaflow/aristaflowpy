@@ -1,6 +1,7 @@
 # Default Python Libraries
 from importlib import import_module
 from multiprocessing.pool import ThreadPool
+from typing import Dict
 from uuid import uuid4
 
 # AristaFlow REST Libraries
@@ -155,7 +156,7 @@ class RestPackageInstance(object):
         # print(dir(ac))
         return ac._ApiClient__deserialize(data, klass)
 
-    def serialize(self, obj):
+    def serialize(self, obj) -> Dict:
         """Serialize REST model object"""
         ac = self.api_client
         return ac.sanitize_for_serialization(obj)

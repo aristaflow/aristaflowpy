@@ -1,6 +1,6 @@
 # Default Python Libraries
 import base64
-from typing import List, Type, TypeVar
+from typing import Dict, List, Type, TypeVar
 
 # AristaFlow REST Libraries
 import af_execution_manager
@@ -33,6 +33,7 @@ from aristaflow.org_model_service import OrgModelService
 from aristaflow.process_service import ProcessService
 from aristaflow.service_provider import ServiceProvider
 
+from .activity_service import ActivityService
 from .configuration import Configuration
 from .worklist_service import WorklistService
 
@@ -57,6 +58,7 @@ class AristaFlowClientService(object):
     __absence_service: AbsenceService = None
     __execution_history_service: ExecutionHistoryService = None
     __org_model_service: OrgModelService = None
+    __activity_service: ActivityService = None
 
     def __init__(
         self, configuration: Configuration, user_session: str, service_provider: ServiceProvider
@@ -208,6 +210,12 @@ class AristaFlowClientService(object):
             self.__org_model_service = OrgModelService(self.__service_provider)
         return self.__org_model_service
 
+    @property
+    def actvity_service(self):
+        if self.__activity_service is None:
+            self.__activity_service = ActivityService(self.__service_provider)
+        return self.__activity_service
+
     def start_html_activity(self, item: WorklistItem, callback_url: str):
         """
         Starts the given HTML GUI worklist item using the Remote HTML Runtime Manager
@@ -290,7 +298,7 @@ class AristaFlowClientService(object):
         """Deserialize data using the given class of the generated OpenAPI models."""
         return self.__service_provider.deserialize(data, klass)
 
-    def serialize(self, obj) -> str:
+    def serialize(self, obj) -> Dict:
         """Serialize REST model object"""
         return self.__service_provider.serialize(obj)
 
