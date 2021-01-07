@@ -68,7 +68,7 @@ class AbsenceService(AbstractService):
         if qas is None or len(qas) == 0:
             qas = self.get_possible_absentees()
 
-        res: List[AbsenceInformation] = []
+        res: List[ExtendedAbsenceInformation] = []
         for absentee in qas:
             ai: AbsenceInformation = wum.get_absence_information(body=absentee)
             is_absent_now = False

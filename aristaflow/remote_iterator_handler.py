@@ -24,6 +24,9 @@ class RemoteIteratorHandler(object):
             return
         if getattr(iterator_data, attrib_name):
             target += getattr(iterator_data, attrib_name)
+        else:
+            # no data left, end recursion
+            return
         if iterator_data.dropped:
             return
 

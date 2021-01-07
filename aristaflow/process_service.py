@@ -68,6 +68,8 @@ class ProcessService(AbstractService):
         # append the tpls
         if inc.templ_refs:
             tpls += inc.templ_refs
+        else:
+            return
         # iterator is used up
         if inc.dropped:
             return

@@ -248,6 +248,8 @@ class WorklistService(object):
         # append the items
         if inc.items_flat:
             items += inc.items_flat
+        else:
+            return
         # iterator is used up
         if inc.dropped:
             return
@@ -289,7 +291,8 @@ class WorklistService(object):
             return
         if inc.item_updates:
             updates += inc.item_updates
-
+        else:
+            return
         if inc.dropped:
             return
 

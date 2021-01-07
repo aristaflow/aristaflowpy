@@ -75,6 +75,8 @@ class DelegationService(AbstractService):
             return
         if cur_iter.agents:
             recipients += cur_iter.agents
+        else:
+            return
         if cur_iter.dropped:
             return
 
