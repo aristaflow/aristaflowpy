@@ -1,5 +1,7 @@
-# AristaFlow-PY
+# AristaFlow BPM Python Integration
 
+Python integration for the [AristaFlow BPM Platform](https://www.aristaflow.com/bpm-platform.html)
+making it easy to use workflow features like task lists in Python applications.
 
 ## Examples
 The usage of all AristaFlow-PY functions requires an
@@ -10,7 +12,7 @@ from aristaflow.client_platform import AristaFlowClientPlatform
 from aristaflow.configuration import Configuration
 
 arf_conf = Configuration(
-    base_url=arf_base_url,
+    base_url='https://aristaflow-bpm.example.com',
     caller_uri="http://localhost/python",
     application_name=None
 )
