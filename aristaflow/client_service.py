@@ -52,7 +52,6 @@ class AristaFlowClientService(object):
     __af_conf: Configuration = None
     __service_provider: ServiceProvider = None
     __worklist_service: WorklistService = None
-    __is_html_runtime_manager_logged_on = False
     __process_service: ProcessService = None
     __delegation_service: DelegationService = None
     __absence_service: AbsenceService = None
@@ -262,14 +261,12 @@ class AristaFlowClientService(object):
 
     def get_html_activity_starting(self) -> SynchronousActivityStartingApi:
         """
-        Returns the Remote HTML Runtime Manager Syncrounous Activity Starting, ensuring logon to the Runtime Manager
+        Returns the Remote HTML Runtime Manager Synchrounous Activity Starting, ensuring logon to the Runtime Manager
         """
         sas: SynchronousActivityStartingApi = self.get_service(SynchronousActivityStartingApi)
-        if self.__is_html_runtime_manager_logged_on:
-            return sas
         rm: RuntimeManagerApi = self.get_service(RuntimeManagerApi)
+        # always logon again, since the server might have been restarted in the meantime
         rm.logon(body=self.__csd)
-        self.__is_html_runtime_manager_logged_on = True
         return sas
 
     def reset_activity(self, item: WorklistItem):
