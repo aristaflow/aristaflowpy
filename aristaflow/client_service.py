@@ -1,6 +1,6 @@
 # Default Python Libraries
 import base64
-from typing import Type, TypeVar
+from typing import List, Type, TypeVar
 
 # AristaFlow REST Libraries
 import af_execution_manager
@@ -89,12 +89,13 @@ class AristaFlowClientService(object):
         if self.__csd is not None:
             raise Exception("Already authenticated")
 
-        auth_data: list[AuthenticationData] = []
-        auth_data.append(AuthDataUserName(username, sub_class="AuthDataUserName"))
+        auth_data: List[AuthenticationData] = [
+            AuthDataUserName(username, sub_class="AuthDataUserName")
+        ]
         if org_pos_id is not None:
             auth_data.append(AuthDataOrgPos(org_pos_id, sub_class="AuthDataOrgPos"))
         psk = self.__af_conf.pre_shared_key
-        method: str = None
+        method: str
         # if a password was provided, use it
         if password:
             auth_data.append(AuthDataPassword(password=password, sub_class="AuthDataPassword"))
@@ -115,8 +116,8 @@ class AristaFlowClientService(object):
             if org_pos_id is None:
                 # if an application name is provided, an org position ID must be used as well
                 # get the org positions
-                agents: list[QualifiedAgent] = gsm.pre_authenticate_method(method, body=auth_data)
-                agent: QualifiedAgent = None
+                agents: List[QualifiedAgent] = gsm.pre_authenticate_method(method, body=auth_data)
+                agent: QualifiedAgent
                 # pick the single org position
                 if len(agents) == 1:
                     agent = agents[0]
@@ -141,20 +142,16 @@ class AristaFlowClientService(object):
                 )
             )
 
-        csds: list[ClientSessionDetails] = gsm.authenticate_all_method(
+        csds: List[ClientSessionDetails] = gsm.authenticate_all_method(
             method, self.__af_conf.caller_uri, body=auth_data
         )
 
-        csd: ClientSessionDetails = None
+        csd: ClientSessionDetails
         if len(csds) == 1:
             csd = csds[0]
         elif len(csds) == 0:
             raise Exception(
-                "User does not have an org position "
-                + username
-                + " (supplied org position id: "
-                + org_pos_id
-                + ")"
+                f"User does not have an org position {username} (supplied org position id: {org_pos_id})"
             )
         else:
             # pick the first as default
@@ -223,7 +220,7 @@ class AristaFlowClientService(object):
         if item.state == "STARTED":
             raise Exception("Item is already started")
         sas = self.get_html_activity_starting()
-        gc: GuiContext = None
+        gc: GuiContext
         ar: AfActivityReference = item.act_ref
         # print('Starting activity...')
         ebp_ir: EbpInstanceReference = EbpInstanceReference(
@@ -261,7 +258,7 @@ class AristaFlowClientService(object):
 
     def get_html_activity_starting(self) -> SynchronousActivityStartingApi:
         """
-        Returns the Remote HTML Runtime Manager Synchrounous Activity Starting, ensuring logon to the Runtime Manager
+        Returns the Remote HTML Runtime Manager Synchronous Activity Starting, ensuring logon to the Runtime Manager
         """
         sas: SynchronousActivityStartingApi = self.get_service(SynchronousActivityStartingApi)
         rm: RuntimeManagerApi = self.get_service(RuntimeManagerApi)
