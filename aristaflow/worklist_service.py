@@ -3,6 +3,7 @@
 import asyncio
 import json
 import traceback
+import warnings
 from asyncio import sleep
 from typing import Generator, List, Set, Union
 
@@ -73,8 +74,7 @@ class WorklistService(object):
             update_intervals.append(UpdateInterval(0, 200))
 
         # worklistFilter: NO_TL or TL_ONLY
-        # notify_only: if True, the initial worklist will not be returned but
-        # pushed
+        # notify_only: if set to true, SSE push will send notifications instead of the updates themselves
         wuc = WorklistUpdateConfiguration(
             update_mode_threshold=0,
             update_intervals=update_intervals,
@@ -137,6 +137,14 @@ class WorklistService(object):
         """
         if self.__push_sse_client is not None:
             return
+        # ensure the worklist has been fetched once
+        # NOTE: this does not help, if the worklist is empty (BPM-3581)
+        if self.__worklist is None:
+            self.get_worklist()
+        if self.__worklist is None:
+            warnings.warn(
+                "The worklist could not be initialized, probably due to BPM-3581. SSE push will not work."
+            )
         asyncio.run_coroutine_threadsafe(
             self._process_push_updates(), self.__service_provider.push_event_loop
         )
@@ -199,6 +207,7 @@ class WorklistService(object):
                 await sleep(self.__af_conf.sse_connect_retry_wait)
             except Exception as e:
                 print("Unknown exception caught during SSE handling", e.__class__)
+                traceback.print_exc()
                 raise
             finally:
                 self.__push_sse_client = None
