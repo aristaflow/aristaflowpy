@@ -181,7 +181,7 @@ class AristaFlowClientService(object):
     @property
     def process_service(self):
         if self.__process_service is None:
-            self.__process_service = ProcessService(self.__service_provider)
+            self.__process_service = ProcessService(self.__service_provider, self.__af_conf)
         return self.__process_service
 
     @property
