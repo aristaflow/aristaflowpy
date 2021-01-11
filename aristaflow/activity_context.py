@@ -9,6 +9,7 @@ class ActivityContext(object):
     _ssc: SimpleSessionContext
     _input_parameters: Dict[str, ParameterValue]
     _output_parameters: Dict[str, ParameterValue]
+    _token: str
 
     def __init__(self):
         self._input_parameters = {}
@@ -70,3 +71,12 @@ class ActivityContext(object):
         for k, v in values:
             if k in self._output_parameters:
                 self._output_parameters[k].value = v
+
+    @property
+    def token(self) -> str:
+        """ Returns the security token used to start / resume the activity """
+        return self._token
+
+    @token.setter
+    def token(self, token: str):
+        self._token = token

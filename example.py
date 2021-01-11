@@ -121,8 +121,9 @@ def runtime_service_example():
         pvs_in: List[ParameterValue] = ac.ssc.data_context.values
         if not pvs_in:
             print("No input parameters.")
-        for pv in pvs_in:
-            print(f"{pv.name}: {pv.value or ''}")
+        else:
+            for pv in pvs_in:
+                print(f"{pv.name}: {pv.value or ''}")
 
         # write output
         pvs_out: List[ParameterValue] = ac.ssc.data_context.output_values
@@ -158,4 +159,6 @@ def runtime_service_example():
 # print(items)
 
 # execute worklist items
-runtime_service_example()
+while True:
+    runtime_service_example()
+    input("Hit enter to continue, Ctrl-C exit")

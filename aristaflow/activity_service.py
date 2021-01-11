@@ -2,8 +2,10 @@
 # Default Python Libraries
 import asyncio
 import json
+import threading
 import traceback
 from asyncio import sleep
+from threading import Lock
 from typing import Dict
 
 # AristaFlow REST Libraries
@@ -15,6 +17,7 @@ from af_runtime_service import (
     RemoteRuntimeEnvironmentApi,
     SimpleSessionContext,
 )
+from af_runtime_service.rest import ApiException
 from af_worklist_manager import AfActivityReference, WorklistItem
 from aristaflow.abstract_service import AbstractService
 from aristaflow.activity_context import ActivityContext
@@ -53,10 +56,12 @@ class ActivityService(AbstractService):
     __push_sse_client = None
     __push_sse_connection_id: str = None
     __signal_handlers: Dict[str, SignalHandler] = None
+    __value_lock: Lock = None
 
     def __init__(self, service_provider: ServiceProvider):
         AbstractService.__init__(self, service_provider)
         self.__signal_handlers = {}
+        self.__value_lock = threading.Lock()
 
     def start_sse(
         self, item: WorklistItem, signal_handler: SignalHandler = None
@@ -90,34 +95,70 @@ class ActivityService(AbstractService):
         )
         # check state and handle start/resume
         ssc: SimpleSessionContext
-        if item.state in ["ENQUIRED", "SUSPENDED"]:
-            ssc = ras.resume_activity_sse(body=callback_data)
-        else:
-            ssc = ras.start_activity_sse(body=callback_data)
         ac = ActivityContext()
+        resume = item.state in ["ENQUIRED", "SUSPENDED"]
+        with self.__value_lock:
+            try:
+                if resume:
+                    ssc = ras.resume_activity_sse(body=callback_data)
+                else:
+                    ssc = ras.start_activity_sse(body=callback_data)
+            except ApiException as e:
+                if e.body:
+                    e_dict = json.loads(e.body)
+                    if e_dict["subClass"] == "InvalidActivityStateException":
+                        # state seems to have changed in the meantime
+                        # try resume instead of start or vice versa
+                        resume = not resume
+                        if resume:
+                            ssc = ras.resume_activity_sse(body=callback_data)
+                        else:
+                            ssc = ras.start_activity_sse(body=callback_data)
+                    else:
+                        raise
+                else:
+                    raise
+            token = self.__get_security_token(ras)
+            ac.token = token
         ac.ssc = ssc
         signal_handler.ac = ac
         self.__signal_handlers[ssc.session_id] = signal_handler
         return ac
 
+    def __get_security_token(self, service) -> str:
+        """Reads the security token used by the given service"""
+        return service.api_client.default_headers["x-AF-Session-ID"]
+
+    def __set_security_token(self, service, token: str):
+        """Sets the security token to be used by the given service"""
+        service.api_client.default_headers["x-AF-Session-ID"] = token
+
     def activity_closed(self, ac: ActivityContext):
         rre: RemoteRuntimeEnvironmentApi = self._service_provider.get_service(
             RemoteRuntimeEnvironmentApi
         )
-        rre.application_closed(session_id=ac.session_id, body=ac.ssc.data_context)
+        with self.__value_lock:
+            self.__set_security_token(rre, ac.token)
+            rre.application_closed(session_id=ac.session_id, body=ac.ssc.data_context)
+
         self._drop_signal_handler(ac)
 
-    def activity_reset(self, ac: ActivityContext):
+    def activity_reset(self, ac: ActivityContext, force_reset: bool = False):
+        """Resets the activity or suspends it if it was resumed. If force reset is set to True, the activity will
+        be reset also if it was resumed before.
+        """
         rre: RemoteRuntimeEnvironmentApi = self._service_provider.get_service(
             RemoteRuntimeEnvironmentApi
         )
         # handle reset to save point if it was resumed
-        if ac.ssc.resumed:
-            rre.application_reset_to_previous_savepoint(
-                session_id=ac.session_id, body=ac.ssc.data_context
-            )
-        else:
-            rre.application_reset(session_id=ac.session_id, body=ac.ssc.data_context)
+        with self.__value_lock:
+            self.__set_security_token(rre, ac.token)
+            if not force_reset and ac.ssc.resumed:
+                rre.application_reset_to_previous_savepoint(
+                    session_id=ac.session_id, body=ac.ssc.data_context
+                )
+            else:
+                rre.application_reset(session_id=ac.session_id, body=ac.ssc.data_context)
         self._drop_signal_handler(ac)
 
     def set_savepoint(
@@ -126,20 +167,24 @@ class ActivityService(AbstractService):
         rre: RemoteRuntimeEnvironmentApi = self._service_provider.get_service(
             RemoteRuntimeEnvironmentApi
         )
-        if state is not None:
-            rre.set_application_state(session_id=ac.session_id, body=state)
-        rre.set_savepoint(
-            savepoint_id=savepoint_id,
-            session_id=ac.session_id,
-            flush=flush,
-            body=ac.ssc.data_context,
-        )
+        with self.__value_lock:
+            self.__set_security_token(rre, ac.token)
+            if state is not None:
+                rre.set_application_state(session_id=ac.session_id, body=state)
+            rre.set_savepoint(
+                savepoint_id=savepoint_id,
+                session_id=ac.session_id,
+                flush=flush,
+                body=ac.ssc.data_context,
+            )
 
     def activity_suspended(self, ac: ActivityContext):
         rre: RemoteRuntimeEnvironmentApi = self._service_provider.get_service(
             RemoteRuntimeEnvironmentApi
         )
-        rre.application_suspended(ac.session_id, body=ac.ssc.data_context)
+        with self.__value_lock:
+            self.__set_security_token(rre, ac.token)
+            rre.application_suspended(ac.session_id, body=ac.ssc.data_context)
         self._drop_signal_handler(ac)
 
     def activity_failed(
@@ -148,13 +193,15 @@ class ActivityService(AbstractService):
         rre: RemoteRuntimeEnvironmentApi = self._service_provider.get_service(
             RemoteRuntimeEnvironmentApi
         )
-        rre.application_failed(
-            error_code=error_code,
-            session_id=ac.session_id,
-            body=ac.ssc.data_context,
-            state=state,
-            msg=msg,
-        )
+        with self.__value_lock:
+            self.__set_security_token(rre, ac.token)
+            rre.application_failed(
+                error_code=error_code,
+                session_id=ac.session_id,
+                body=ac.ssc.data_context,
+                state=state,
+                msg=msg,
+            )
         self._drop_signal_handler(ac)
 
     def _drop_signal_handler(self, ac: ActivityContext):
