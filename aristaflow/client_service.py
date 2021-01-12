@@ -105,8 +105,7 @@ class AristaFlowClientService(object):
             # get the utf-8 bytes, encode them using base 64 and decode the resulting bytes using ASCII
             psk_encoded = base64.b64encode(bytes(psk, "UTF-8")).decode("ascii")
             auth_data.append(AuthDataArbitrary(data=psk_encoded, sub_class="AuthDataArbitrary"))
-            method = "SHARED_UTF-8_KEY"
-        else:
+            method = "SHARED_UTFo
             raise Exception("No authentication method left")
 
         gsm: GlobalSecurityManagerApi = self.get_service(GlobalSecurityManagerApi)
