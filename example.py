@@ -105,7 +105,7 @@ def runtime_service_example():
         sel = int(input("Enter a number: "))
     item = items[sel - 1]
 
-    act_service = cs.actvity_service
+    act_service = cs.activity_service
 
     class CustomSignalHandler(SignalHandler):
         def signal(self, msg: ExecutionMessage) -> bool:  # noqa: F811
@@ -114,6 +114,7 @@ def runtime_service_example():
             # os.kill(os.getpid(), signal.SIGINT)
 
     ac = act_service.start_sse(item, CustomSignalHandler())
+
     try:
         # Configuration values of the activity
         act_instance: ActivityInstance = ac.ssc.act_instance

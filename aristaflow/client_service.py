@@ -25,6 +25,7 @@ from af_remote_html_runtime_manager.models.ebp_instance_reference import EbpInst
 from af_remote_html_runtime_manager.models.gui_context import GuiContext
 from af_worklist_manager.models.af_activity_reference import AfActivityReference
 from af_worklist_manager.models.worklist_item import WorklistItem
+from af_runtime_service import SimpleSessionContext
 from aristaflow.absence_service import AbsenceService
 from aristaflow.delegation_service import DelegationService
 from aristaflow.execution_history_service import ExecutionHistoryService
@@ -33,6 +34,7 @@ from aristaflow.html_gui_context import HtmlGuiContext
 from aristaflow.org_model_service import OrgModelService
 from aristaflow.process_service import ProcessService
 from aristaflow.service_provider import ServiceProvider
+from aristaflow.activity_context import ActivityContext
 
 from .activity_service import ActivityService
 from .configuration import Configuration
@@ -219,7 +221,7 @@ class AristaFlowClientService(object):
         return self.__org_model_service
 
     @property
-    def actvity_service(self):
+    def activity_service(self):
         if self.__activity_service is None:
             self.__activity_service = ActivityService(self.__service_provider)
         return self.__activity_service
@@ -309,6 +311,25 @@ class AristaFlowClientService(object):
     def serialize(self, obj) -> Dict:
         """Serialize REST model object"""
         return self.__service_provider.serialize(obj)
+
+    def parse_ac_to_dict(self, ac: ActivityContext) -> dict:
+        """
+        Parses the context data required to recreate an ActivityContext
+        to a json serializable dict
+        """
+        return {
+            "token": ac.token,
+            "ssc": self.serialize(ac.ssc)
+        }
+
+    def get_ac_from_dict(self,context_data: dict) -> ActivityContext:
+        """
+        Creates a new ActivityContext from a dict provided by parse_ac_to_dict
+        """
+        ac = ActivityContext()
+        ac.token = context_data["token"]
+        ac.ssc = self.deserialize(context_data["ssc"], SimpleSessionContext)
+        return ac
 
     @property
     def autostart_timeout_seconds(self) -> int:
