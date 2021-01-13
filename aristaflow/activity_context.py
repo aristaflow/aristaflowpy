@@ -4,7 +4,6 @@ from typing import Dict, List
 # AristaFlow REST Libraries
 from af_runtime_service import DataContext, ParameterValue, SimpleSessionContext
 
-
 class ActivityContext(object):
     _ssc: SimpleSessionContext
     _input_parameters: Dict[str, ParameterValue]
