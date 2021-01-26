@@ -25,7 +25,7 @@ const swaggerFile = "swagger.json";
 const configFile = "swagger-config.json";
 
 // increment this whenever changing the generated output w/o updated major/minor versions of the endpoint
-const genearteBackendVersion = 2;
+const genearteBackendVersion = 3;
 
 // download the swagger code generator
 function downloadSwagger() {
@@ -117,7 +117,7 @@ function applyPatches(generatedCodePath, project, serviceName) {
   // attribute_types.keys()
   // with:
   // attribute_types.values()
-  options.from = /attribute_types.keys()/g;
+  options.from = /attribute_types\.keys\(\)/g;
   options.to = 'attribute_types.values()';
   replaceResult = replace.sync(options);
   // console.log("Patch result: ", replaceResult);
