@@ -25,7 +25,7 @@ const swaggerFile = "swagger.json";
 const configFile = "swagger-config.json";
 
 // increment this whenever changing the generated output w/o updated major/minor versions of the endpoint
-const genearteBackendVersion = 1;
+const genearteBackendVersion = 3;
 
 // download the swagger code generator
 function downloadSwagger() {
@@ -108,6 +108,17 @@ function applyPatches(generatedCodePath, project, serviceName) {
   options.from = /        self\.discriminator =/g;
   options.to =
     '        if not(hasattr(self, "discriminator")) or not(self.discriminator):\n            self.discriminator =';
+  replaceResult = replace.sync(options);
+  // console.log("Patch result: ", replaceResult);
+
+  // af_org_model_manager/model/entity.py contains a map from string to enum. The generated code somehow compares
+  // the keys of the map with the valid enum entries instead the values in the map.
+  // replace:
+  // attribute_types.keys()
+  // with:
+  // attribute_types.values()
+  options.from = /attribute_types\.keys\(\)/g;
+  options.to = 'attribute_types.values()';
   replaceResult = replace.sync(options);
   // console.log("Patch result: ", replaceResult);
 
