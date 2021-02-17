@@ -125,6 +125,49 @@ class ActivityService(AbstractService):
         self.__signal_handlers[ssc.session_id] = signal_handler
         return ac
 
+    def get_ac(
+        self,
+        item: WorklistItem,
+        # signal_handler: SignalHandler = None
+    ) -> ActivityContext:
+        """Returns the Activity Context of an already running task"""
+
+        ar: AfActivityReference = item.act_ref
+        # TODO I think the ID is missing here
+        ebp_ir = EbpInstanceReference(
+            ar.type,
+            ar.instance_id,
+            ar.instance_log_id,
+            ar.base_template_id,
+            ar.node_id,
+            ar.node_iteration,
+            ar.execution_manager_uris,
+            ar.runtime_manager_uris,
+        )
+
+        ras: RemoteActivityStartingApi = self._service_provider.get_service(
+            RemoteActivityStartingApi
+        )
+
+        callback_data: ActivitySseCallbackData = ActivitySseCallbackData(
+            sse_conn=self.__push_sse_connection_id,
+            sub_class="ActivitySseCallbackData",
+            activity=ebp_ir,
+        )
+        # print(callback_data)
+        # print("################################")
+        # print(ras)
+        # print("################################")
+        # print(ebp_ir)
+        # print("################################")
+
+        # TODO this step fails
+        ssc: SimpleSessionContext = ras.get_simple_session_context(body=callback_data)
+        ac = ActivityContext()
+        ac.ssc = ssc
+
+        return ac
+
     def __get_security_token(self, service) -> str:
         """Reads the security token used by the given service"""
         return service.api_client.default_headers["x-AF-Session-ID"]
