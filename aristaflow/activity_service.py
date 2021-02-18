@@ -204,6 +204,42 @@ class ActivityService(AbstractService):
             )
         self._drop_signal_handler(ac)
 
+    def get_ssc(
+        self, item: WorklistItem, signal_handler: SignalHandler = None
+    ) -> ActivityContext:
+        # TODO add signal handler code
+        # I don't know how/why
+        ras: RemoteActivityStartingApi = self._service_provider.get_service(
+            RemoteActivityStartingApi
+        )
+
+        ar: AfActivityReference = item.act_ref
+        ebp_ir = EbpInstanceReference(
+            ar.type,
+            ar.instance_id,
+            ar.instance_log_id,
+            ar.base_template_id,
+            ar.node_id,
+            ar.node_iteration,
+            ar.execution_manager_uris,
+            ar.runtime_manager_uris,
+        )
+        callback_data: ActivitySseCallbackData = ActivitySseCallbackData(
+            sse_conn=self.__push_sse_connection_id,
+            sub_class="ActivitySseCallbackData",
+            activity=ebp_ir,
+        )
+
+        ssc: SimpleSessionContext
+        ac = ActivityContext()
+
+        # TODO missing error handling if activity
+        # is in illegal state for operaton 
+        ssc = ras.get_simple_session_context(callback_data)
+
+        ac.ssc = ssc
+        return ac
+
     def _drop_signal_handler(self, ac: ActivityContext):
         """
         Drops the signal handler for the given session
