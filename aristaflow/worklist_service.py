@@ -31,6 +31,10 @@ from af_worklist_manager.models.worklist_revision import WorklistRevision
 from af_worklist_manager.models.worklist_update import WorklistUpdate
 from af_worklist_manager.models.worklist_update_configuration import WorklistUpdateConfiguration
 
+from af_execution_manager import ActivityStartingApi
+from af_worklist_manager import WorklistItem
+from af_runtime_service import EbpInstanceReference
+
 from .configuration import Configuration
 from .service_provider import ServiceProvider
 from .worklist_model import Worklist
@@ -291,6 +295,34 @@ class WorklistService(object):
             )
             self._notify_worklist_update_listeners(updates)
         return self.__items
+
+
+    # TODO define fitting return value
+    def select_activity(
+        self, item: WorklistItem #, signal_handler: SignalHandler = None
+    ) -> bool:
+        """
+        Assigns the current user to the provided activity
+        """
+        asa: ActivityStartingApi = self.__service_provider.get_service(
+            ActivityStartingApi
+        )
+        
+        ar: AfActivityReference = item.act_ref
+        ebp_ir = EbpInstanceReference(
+            ar.type,
+            ar.instance_id,
+            ar.instance_log_id,
+            ar.base_template_id,
+            ar.node_id,
+            ar.node_iteration,
+            ar.execution_manager_uris,
+            ar.runtime_manager_uris,
+        )
+
+        asa.select_activity(body=ebp_ir)
+
+        return True
 
     def __iterate_updates(
         self, updates: List[ClientWorklistItemUpdate], inc: IncWorklistUpdateData

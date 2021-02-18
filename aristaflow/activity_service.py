@@ -224,18 +224,13 @@ class ActivityService(AbstractService):
             ar.execution_manager_uris,
             ar.runtime_manager_uris,
         )
-        callback_data: ActivitySseCallbackData = ActivitySseCallbackData(
-            sse_conn=self.__push_sse_connection_id,
-            sub_class="ActivitySseCallbackData",
-            activity=ebp_ir,
-        )
 
         ssc: SimpleSessionContext
         ac = ActivityContext()
 
         # TODO missing error handling if activity
         # is in illegal state for operaton 
-        ssc = ras.get_simple_session_context(callback_data)
+        ssc = ras.get_simple_session_context(body=ebp_ir)
 
         ac.ssc = ssc
         return ac
