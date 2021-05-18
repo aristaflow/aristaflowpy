@@ -322,6 +322,12 @@ downloadSwagger()
     );
   })
   .then(() => {
+    return generateClient(
+      "ResModelManager/ResModelManager",
+      "res-model-manager"
+    );
+  })
+  .then(() => {
     console.log(`
   Done
   `);

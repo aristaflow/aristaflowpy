@@ -77,6 +77,8 @@ class RestPackage(object):
             return "RuntimeManager"
         elif self.package_name == "af_simple_process_image_renderer":
             return "SimpleProcessImageRenderer"
+        elif self.package_name == "af_res_model_manager":
+            return "ResModelManager"
         elif self.package_name == "af_process_image_renderer":
             return "ProcessImageRenderer"
         else:
