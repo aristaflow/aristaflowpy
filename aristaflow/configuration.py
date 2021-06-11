@@ -1,9 +1,9 @@
 class Configuration(object):
-    # TODO remote (html) runtime manager
-    # TODO PIR
     def __init__(
         self,
         base_url: str,
+        rem_runtime_url: str,
+        pimage_renderer_url: str,
         caller_uri: str,
         verify_ssl=True,
         pre_shared_key: str = None,
@@ -11,14 +11,31 @@ class Configuration(object):
         async_thread_pool_size: int = None,
         autostart_timeout_seconds=30,
     ):
+
         """
-        :param baseUrl
+        :param base_url
+        :param rem_runtime_url
+        :param pimage_renderer_url
         """
+
         if base_url.endswith("/"):
-            base_url = base_url[0 : len(base_url) - 1]
+            base_url = base_url[0: len(base_url) - 1]
         if not (base_url.endswith("AristaFlowREST")):
             base_url = base_url + "/AristaFlowREST"
+
+        if str(rem_runtime_url).endswith("/"):
+            rem_runtime_url = rem_runtime_url[0: len(rem_runtime_url) - 1]
+        if str(rem_runtime_url).endswith("AristaFlowREST"):
+            rem_runtime_url = rem_runtime_url + "/RuntimeManager/RemoteHTMLRuntimeManager/"
+
+        if str(pimage_renderer_url).endswith("/"):
+            pimage_renderer_url = pimage_renderer_url[0: len(pimage_renderer_url) - 1]
+        if str(pimage_renderer_url).endswith("AristaFlowREST"):
+            pimage_renderer_url = pimage_renderer_url + "/ProcessImageRenderer/ProcessImageRenderer"
+
         self.__baseUrl = base_url
+        self.__rem_runtime_url = rem_runtime_url
+        self.__pimage_renderer_url = pimage_renderer_url
         self.__caller_uri = caller_uri
         self.__verify_ssl = verify_ssl
         self.__pre_shared_key = pre_shared_key
@@ -27,8 +44,16 @@ class Configuration(object):
         self.__autostart_timeout_seconds = autostart_timeout_seconds
 
     @property
-    def baseUrl(self) -> str:
+    def base_url(self) -> str:
         return self.__baseUrl
+
+    @property
+    def rem_runtime_url(self) -> str:
+        return self.__rem_runtime_url
+
+    @property
+    def pimage_renderer_url(self) -> str:
+        return self.__pimage_renderer_url
 
     @property
     def caller_uri(self) -> str:
@@ -68,12 +93,15 @@ class Configuration(object):
         :param service_instance: Optionally the simple BPM service instance name, e.g. RemoteHTMLRuntimeManager
         :return: str The host value for the requested service
         """
+
         if service_instance is None:
             if service_type == "RuntimeManager":
-                service_instance = "RemoteHTMLRuntimeManager"
+                return self.rem_runtime_url
+            elif service_type == "ProcessImageRenderer":
+                return self.pimage_renderer_url
             else:
                 service_instance = service_type
-        return self.baseUrl + "/" + service_type + "/" + service_instance
+        return self.base_url + "/" + service_type + "/" + service_instance
 
     def get_debug(self, service_type: str, service_instance: str = None) -> bool:
         return False
