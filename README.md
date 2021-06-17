@@ -2,6 +2,7 @@
 
 Python integration for the [AristaFlow BPM Platform](https://www.aristaflow.com/bpm-platform.html)
 making it easy to use workflow features like task lists in Python applications.
+Pre-build packages can be installed directly from PyPI: https://pypi.org/project/aristaflowpy/
 
 ## Examples
 The usage of all AristaFlow-PY functions requires an
