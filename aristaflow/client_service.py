@@ -28,6 +28,7 @@ from af_worklist_manager.models.worklist_item import WorklistItem
 from aristaflow.absence_service import AbsenceService
 from aristaflow.delegation_service import DelegationService
 from aristaflow.execution_history_service import ExecutionHistoryService
+from aristaflow.image_renderer_service import ImageRendererService
 from aristaflow.html_gui_context import HtmlGuiContext
 from aristaflow.org_model_service import OrgModelService
 from aristaflow.process_service import ProcessService
@@ -56,6 +57,7 @@ class AristaFlowClientService(object):
     __delegation_service: DelegationService = None
     __absence_service: AbsenceService = None
     __execution_history_service: ExecutionHistoryService = None
+    __image_renderer_service: ImageRendererService = None
     __org_model_service: OrgModelService = None
 
     def __init__(
@@ -201,6 +203,12 @@ class AristaFlowClientService(object):
         if self.__execution_history_service is None:
             self.__execution_history_service = ExecutionHistoryService(self.__service_provider)
         return self.__execution_history_service
+
+    @property
+    def image_renderer_service(self):
+        if self.__image_renderer_service is None:
+            self.__image_renderer_service = ImageRendererService(self.__service_provider)
+        return self.__image_renderer_service
 
     @property
     def org_model_service(self):
