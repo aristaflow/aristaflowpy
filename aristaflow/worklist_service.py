@@ -383,3 +383,9 @@ class WorklistService(object):
                 # print('Found')
                 return item
         return None
+
+    def update_worklist_item(self, item: ClientWorklistItem):
+        wum: WorklistUpdateManagerApi = self.__service_provider.get_service(
+            WorklistUpdateManagerApi
+        )
+        wum.update_individual_settings(item)

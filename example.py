@@ -24,13 +24,18 @@ from aristaflow.configuration import Configuration
 
 
 conf = Configuration(
-    base_url="http://127.0.0.1:8080/", caller_uri="http://localhost/python", application_name=None
+    base_url="http://localhost:81/AristaFlowREST/",
+    pimage_renderer_url="http://localhost:82/AristaFlowREST/RuntimeManager/RemoteHTMLRuntimeManager/",
+    rem_runtime_url="http://localhost:83/AristaFlowREST/ProcessImageRenderer/ProcessImageRenderer/",
+    caller_uri="http://localhost/python",
+    application_name=None
 )
 platform = AristaFlowClientPlatform(conf)
 cs = platform.get_client_service()
 cs.authenticate("supervisor", "password")
 # when PSK authentication is configured, no password is required
 # cs.authenticate("supervisor")
+
 
 
 def print_connection_info():
@@ -55,8 +60,9 @@ def print_template_info():
 ws = cs.worklist_service
 items = ws.get_worklist()
 
-print(f"Found {len(items)} worklist items")
+# print(f"Found {len(items)} worklist items")
 
+ws.update_worklist_item(items[0])
 
 def worklist_sse_push():
     def worklist_updated(updates: List[ClientWorklistItemUpdate]):
@@ -66,11 +72,12 @@ def worklist_sse_push():
     ws.enable_push_updates()
     input("Waiting and showing for worklist updates via SSE. Press return key to continue.")
 
-
 def worklist_manual_update():
     ws.update_worklist()
     print(f"Found {len(items)} worklist items")
 
+print(items[0].priority)
+print(items[0].ind_priority)
 
 # worklist_sse_push()
 
