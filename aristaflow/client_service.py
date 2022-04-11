@@ -35,6 +35,7 @@ from aristaflow.org_model_service import OrgModelService
 from aristaflow.process_service import ProcessService
 from aristaflow.service_provider import ServiceProvider
 from aristaflow.activity_context import ActivityContext
+from .abstract_service import AbstractService
 
 from .activity_service import ActivityService
 from .configuration import Configuration
@@ -182,42 +183,49 @@ class AristaFlowClientService(object):
     def worklist_service(self):
         if self.__worklist_service is None:
             self.__worklist_service = WorklistService(self.__service_provider, self.__af_conf)
+            self.__all_services.append(self.__worklist_service)
         return self.__worklist_service
 
     @property
     def process_service(self):
         if self.__process_service is None:
             self.__process_service = ProcessService(self.__service_provider, self.__af_conf)
+            self.__all_services.append(self.__process_service)
         return self.__process_service
 
     @property
     def delegation_service(self):
         if self.__delegation_service is None:
             self.__delegation_service = DelegationService(self.__service_provider)
+            self.__all_services.append(self.__delegation_service)
         return self.__delegation_service
 
     @property
     def absence_service(self):
         if self.__absence_service is None:
             self.__absence_service = AbsenceService(self.__service_provider)
+            self.__all_services.append(self.__absence_service)
         return self.__absence_service
 
     @property
     def execution_history_service(self):
         if self.__execution_history_service is None:
             self.__execution_history_service = ExecutionHistoryService(self.__service_provider)
+            self.__all_services.append(self.__execution_history_service)
         return self.__execution_history_service
 
     @property
     def image_renderer_service(self):
         if self.__image_renderer_service is None:
             self.__image_renderer_service = ImageRendererService(self.__service_provider)
+            self.__all_services.append(self.__image_renderer_service)
         return self.__image_renderer_service
 
     @property
     def org_model_service(self):
         if self.__org_model_service is None:
             self.__org_model_service = OrgModelService(self.__service_provider)
+            self.__all_services.append(self.__org_model_service)
         return self.__org_model_service
 
     @property
@@ -335,3 +343,11 @@ class AristaFlowClientService(object):
     def autostart_timeout_seconds(self) -> int:
         """Wait time in seconds for auto start signals"""
         return self.__af_conf.autostart_timeout_seconds
+
+    def disconnect(self):
+        """ Disconnect all services"""
+        for service in self.__all_services:
+            try:
+                service.disconnect()
+            except Exception as e:
+                print("Exception on disconnecting service", e)

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-from asyncio.base_events import BaseEventLoop
+from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
-from multiprocessing.pool import ThreadPool
 from typing import Dict, Generator, Tuple, Type, TypeVar
 
 # Third Party Libraries
-# from aiohttp_sse_client import client as sse_client
 import sseclient
 
 # AristaFlow REST Libraries
@@ -28,22 +26,18 @@ class ServiceProvider(object):
     __services: [type, object] = None
     # authentication
     __csd: ClientSessionDetails = None
-    # thread pool for async requests
-    __async_thread_pool: ThreadPool = None
-    # event loop for SSE push notifications
-    __push_event_loop: BaseEventLoop = None
+    # thread pool for sse handling
+    __thread_pool: ThreadPoolExecutor = None
 
     def __init__(
         self,
         rest_package_registry: RestPackageRegistry,
-        async_thread_pool: ThreadPool,
-        push_event_loop: BaseEventLoop,
+        thread_pool: ThreadPoolExecutor,
     ):
         self.__rest_package_registry = rest_package_registry
         self.__rest_packages = {}
         self.__services = {}
-        self.__async_thread_pool = async_thread_pool
-        self.__push_event_loop = push_event_loop
+        self.__thread_pool = thread_pool
 
     def __get_package_instance(self, service_type: Type) -> RestPackageInstance:
         """Returns the (cached) ApiClient instance for the package of the given service_type.
@@ -55,7 +49,7 @@ class ServiceProvider(object):
         if pkg in self.__rest_packages:
             pkg_instance = self.__rest_packages[pkg]
         else:
-            pkg_instance = RestPackageInstance(pkg, self.__async_thread_pool)
+            pkg_instance = RestPackageInstance(pkg, self.__thread_pool)
             self.__rest_packages[pkg] = pkg_instance
 
         return pkg_instance
@@ -116,13 +110,10 @@ class ServiceProvider(object):
         return self.get_service(afsapi_class)
 
     @property
-    def push_event_loop(self):
-        """
-        The asyncio event loop to be used async push notifications
-        """
-        return self.__push_event_loop
+    def thread_pool(self) -> ThreadPoolExecutor:
+        return self.__thread_pool
 
-    def connect_sse(self, klass: Type) -> Tuple[str, Generator]:
+    def connect_sse(self, klass: Type) -> Tuple[str, sseclient.SSEClient]:
         """
         Creates a new SSE connection for the given endpoint
         """
@@ -138,3 +129,10 @@ class ServiceProvider(object):
         sse: sseclient.SSEClient = sseclient.SSEClient(register_sse_endpoint, **kwargs)
         initial = next(sse)
         return (initial.data, sse)
+
+    @property
+    def csd(self):
+        """
+        Returns the client session details
+        """
+        return self.__csd

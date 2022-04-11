@@ -1,7 +1,6 @@
 # Default Python Libraries
-import asyncio
-from asyncio.base_events import BaseEventLoop
-from multiprocessing.pool import ThreadPool
+import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from .client_service import AristaFlowClientService
 from .configuration import Configuration
@@ -13,16 +12,13 @@ class AristaFlowClientPlatform(object):
     """Entry point to the AristaFlow Python Client framework."""
 
     # thread pool for async requests
-    __async_thread_pool: ThreadPool = None
-    __push_event_loop: BaseEventLoop = None
+    __thread_pool: ThreadPoolExecutor = None
 
     def __init__(self, configuration: Configuration):
         self.configuration = configuration
         self.__client_services: [str, AristaFlowClientService] = {}
         self.__rest_package_registry = RestPackageRegistry(configuration)
-        self.__async_thread_pool = ThreadPool(configuration.async_thread_pool_size)
-        self.__push_event_loop = asyncio.new_event_loop()
-        self.__async_thread_pool.apply_async(self._start_event_loop)
+        self.__thread_pool = ThreadPoolExecutor()
 
     def get_client_service(self, user_session: str = "python_default_session"):
         """
@@ -34,18 +30,17 @@ class AristaFlowClientPlatform(object):
             self.configuration,
             user_session,
             ServiceProvider(
-                self.__rest_package_registry, self.__async_thread_pool, self.__push_event_loop
+                self.__rest_package_registry, self.__thread_pool
             ),
         )
         self.__client_services[user_session] = cs
         return cs
 
-    def _start_event_loop(self):
-        """
-        Starts the asyncio event loop for handling push notifications
-        """
+    def disconnect(self):
         try:
-            asyncio.set_event_loop(self.__push_event_loop)
-            self.__push_event_loop.run_forever()
-        finally:
-            self.__push_event_loop.close()
+            for user_session in self.__client_services:
+                self.__client_services[user_session].disconnect()
+            # shutdown thread pool
+            self.__thread_pool.shutdown(wait=False, cancel_futures=True)
+        except BaseException as ex:
+            logging.warning('Exception on disconnect', ex)

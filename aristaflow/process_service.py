@@ -7,6 +7,7 @@ from asyncio import sleep
 from typing import List, Optional, Set, Union
 
 # AristaFlow REST Libraries
+import sseclient
 from af_execution_manager import InstanceCreationSseData, InstanceStateData
 from af_execution_manager.api.instance_control_api import InstanceControlApi
 from af_execution_manager.api.templ_ref_remote_iterator_rest_api import (
@@ -41,7 +42,7 @@ class ProcessService(AbstractService):
     """Process related methods"""
 
     __instance_state_listeners: Set[InstanceStateListener] = None
-    __push_sse_client = None
+    __push_sse_client: sseclient.SSEClient = None
     _sse_id: str = None
     __af_conf: Configuration = None
 
@@ -166,9 +167,7 @@ class ProcessService(AbstractService):
         if self.__push_sse_client is not None:
             return
         # print("ProcessService: Enabling SSE")
-        asyncio.run_coroutine_threadsafe(
-            self._process_push_instance_state_changes(), self._service_provider.push_event_loop
-        )
+        self._service_provider.thread_pool.submit(self._process_push_instance_state_changes)
 
         # Default Python Libraries
         import time
@@ -180,11 +179,12 @@ class ProcessService(AbstractService):
             i = i + 1
         # print(f"SSE available after {i/10} seconds  ID is {self._sse_id}")
 
-    async def _process_push_instance_state_changes(self):
+    def _process_push_instance_state_changes(self):
         """
         Coroutine retrieving SSE push notifications instance state changes
         """
-        while True:
+        # print(f'ProcessService starting push update processing')
+        while not self._disconnected:
             # print("Establishing SSE connection...")
             try:
                 sse_connection_id, sse_client = self._service_provider.connect_sse(
@@ -216,8 +216,8 @@ class ProcessService(AbstractService):
             #                            print(f"Unknown worklist SSE push event {event.event} received")
             except ConnectionError:
                 # re-establish connection after some wait time
-                # print("ProcessService SSE disconnected...")
-                await sleep(self.__af_conf.sse_connect_retry_wait)
+                print("ProcessService SSE disconnected...")
+                sleep(self.__af_conf.sse_connect_retry_wait)
             except Exception as e:
                 print("Unknown exception caught during SSE handling", e.__class__)
                 raise
@@ -261,3 +261,9 @@ class ProcessService(AbstractService):
         except Exception:
             logicl_id = im.get_logical_instance_ids(body=[inst_id]).inst_ids[0]
             return im.get_instance_refs(body=[logicl_id]).inst_refs[0]
+
+    def disconnect(self):
+        AbstractService.disconnect(self)
+        # close the SSE connection if any
+        if self.__push_sse_client:
+            self.__push_sse_client.close()

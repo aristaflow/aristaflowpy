@@ -9,6 +9,7 @@ from threading import Lock
 from typing import Dict
 
 # AristaFlow REST Libraries
+import sseclient
 from af_runtime_service import (
     ActivitySseCallbackData,
     EbpInstanceReference,
@@ -53,7 +54,7 @@ class ActivityService(AbstractService):
     Helper methods for executing activities
     """
 
-    __push_sse_client = None
+    __push_sse_client: sseclient.SSEClient = None
     __push_sse_connection_id: str = None
     __signal_handlers: Dict[str, SignalHandler] = None
     __value_lock: Lock = None
@@ -251,15 +252,15 @@ class ActivityService(AbstractService):
         self.__push_sse_connection_id, self.__push_sse_client = self._service_provider.connect_sse(
             RemoteActivityStartingApi
         )
-        asyncio.run_coroutine_threadsafe(
-            self._process_push_updates(), self._service_provider.push_event_loop
-        )
+        print(f'ActivityService SSE connection ready, got id {self.__push_sse_connection_id}')
+        self._service_provider.thread_pool.submit(self._process_push_updates)
 
-    async def _process_push_updates(self):
+    def _process_push_updates(self):
         """
         Coroutine retrieving SSE push notifications for the activities, handling registration and reconnects
         """
-        while True:
+        print('ActivityService starting push update processing')
+        while not self._disconnected:
             try:
                 if self.__push_sse_client is None:
                     print("Establishing SSE connection...")
@@ -302,9 +303,19 @@ class ActivityService(AbstractService):
             except ConnectionError:
                 # re-establish connection after some wait time
                 # print("SSE disconnected...")
-                await sleep(self.__af_conf.sse_connect_retry_wait)
+                sleep(self.__af_conf.sse_connect_retry_wait)
             except Exception as e:
                 print("Unknown exception caught during SSE handling", e.__class__)
                 raise
             finally:
                 self.__push_sse_client = None
+
+    def disconnect(self):
+        AbstractService.disconnect(self)
+        # close the SSE connection
+        for _, signal_handler in self.__signal_handlers:
+            # TODO implement some "suspend if resumed" logic and only suspend if formerly resumed
+            self.activity_suspended(signal_handler.ac)
+        # close the SSE connection if any
+        if self.__push_sse_client:
+            self.__push_sse_client.close()
