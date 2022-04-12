@@ -23,14 +23,14 @@ class Configuration(object):
         if not (base_url.endswith("AristaFlowREST")):
             base_url = base_url + "/AristaFlowREST"
 
-        if str(rem_runtime_url).endswith("/"):
+        if rem_runtime_url and str(rem_runtime_url).endswith("/"):
             rem_runtime_url = rem_runtime_url[0: len(rem_runtime_url) - 1]
-        if str(rem_runtime_url).endswith("AristaFlowREST"):
-            rem_runtime_url = rem_runtime_url + "/RuntimeManager/RemoteHTMLRuntimeManager/"
+        if rem_runtime_url and not ('/RuntimeManager/' in str(rem_runtime_url)):
+            rem_runtime_url = rem_runtime_url + "/RuntimeManager/RemoteHTMLRuntimeManager"
 
-        if str(pimage_renderer_url).endswith("/"):
+        if pimage_renderer_url and str(pimage_renderer_url).endswith("/"):
             pimage_renderer_url = pimage_renderer_url[0: len(pimage_renderer_url) - 1]
-        if str(pimage_renderer_url).endswith("AristaFlowREST"):
+        if pimage_renderer_url and not ('/ProcessImageRenderer/' in str(pimage_renderer_url)):
             pimage_renderer_url = pimage_renderer_url + "/ProcessImageRenderer/ProcessImageRenderer"
 
         self.__baseUrl = base_url
