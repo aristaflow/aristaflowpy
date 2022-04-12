@@ -14,15 +14,9 @@ from af_org_model_manager.models.auth_data_user_name import AuthDataUserName
 from af_org_model_manager.models.authentication_data import AuthenticationData
 from af_org_model_manager.models.client_session_details import ClientSessionDetails
 from af_org_model_manager.models.qualified_agent import QualifiedAgent
-from af_remote_html_runtime_manager.api.runtime_manager_api import RuntimeManagerApi
 from af_remote_html_runtime_manager.api.synchronous_activity_starting_api import (
     SynchronousActivityStartingApi,
 )
-from af_remote_html_runtime_manager.models.activity_rest_callback_data import (
-    ActivityRestCallbackData,
-)
-from af_remote_html_runtime_manager.models.ebp_instance_reference import EbpInstanceReference
-from af_remote_html_runtime_manager.models.gui_context import GuiContext
 from af_worklist_manager.models.af_activity_reference import AfActivityReference
 from af_worklist_manager.models.worklist_item import WorklistItem
 from af_runtime_service import SimpleSessionContext
@@ -30,7 +24,6 @@ from aristaflow.absence_service import AbsenceService
 from aristaflow.delegation_service import DelegationService
 from aristaflow.execution_history_service import ExecutionHistoryService
 from aristaflow.image_renderer_service import ImageRendererService
-from aristaflow.html_gui_context import HtmlGuiContext
 from aristaflow.org_model_service import OrgModelService
 from aristaflow.process_service import ProcessService
 from aristaflow.service_provider import ServiceProvider
@@ -39,6 +32,7 @@ from .abstract_service import AbstractService
 
 from .activity_service import ActivityService
 from .configuration import Configuration
+from .remote_html_service import RemoteHtmlService, HtmlSignalHandler
 from .worklist_service import WorklistService
 
 
@@ -64,6 +58,8 @@ class AristaFlowClientService(object):
     __image_renderer_service: ImageRendererService = None
     __org_model_service: OrgModelService = None
     __activity_service: ActivityService = None
+    __remote_html_service: RemoteHtmlService = None
+    __all_services: list[AbstractService] = []
 
     def __init__(
         self, configuration: Configuration, user_session: str, service_provider: ServiceProvider
@@ -173,11 +169,7 @@ class AristaFlowClientService(object):
         self.__csd = csd
 
     def is_html_activity(self, item: WorklistItem) -> bool:
-        return (
-            item.act_ref.gui_context_id == "HTMLContext"
-            or item.act_ref.executable_component_name == "de.aristaflow.form.Form"
-            or item.act_ref.executable_component_name == "de.aristaflow.form.GeneratedForm"
-        )
+        return RemoteHtmlService.is_html_activity(item)
 
     @property
     def worklist_service(self):
@@ -232,65 +224,29 @@ class AristaFlowClientService(object):
     def activity_service(self):
         if self.__activity_service is None:
             self.__activity_service = ActivityService(self.__service_provider)
+            self.__all_services.append(self.__activity_service)
         return self.__activity_service
 
-    def start_html_activity(self, item: WorklistItem, callback_url: str):
+    @property
+    def remote_html_service(self):
+        if self.__remote_html_service is None:
+            self.__remote_html_service = RemoteHtmlService(self.__service_provider)
+            self.__all_services.append(self.__remote_html_service)
+        return self.__remote_html_service
+
+    def start_html_activity(self, item: WorklistItem, callback_url: str = None,
+                            signal_handler: HtmlSignalHandler = None):
         """
         Starts the given HTML GUI worklist item using the Remote HTML Runtime Manager
         """
-        if item is None:
-            raise Exception("No worklist item provided")
-        # accept user form and HTMLContext based activities
-        if not (self.is_html_activity(item)):
-            raise Exception(f"Not an HTML activity: {item.act_ref.gui_context_id}")
-        if item.state == "STARTED":
-            raise Exception("Item is already started")
-        sas = self.get_html_activity_starting()
-        gc: GuiContext
-        ar: AfActivityReference = item.act_ref
-        # print('Starting activity...')
-        ebp_ir: EbpInstanceReference = EbpInstanceReference(
-            ar.type,
-            ar.instance_id,
-            ar.instance_log_id,
-            ar.base_template_id,
-            ar.node_id,
-            ar.node_iteration,
-            ar.execution_manager_uris,
-            ar.runtime_manager_uris,
-        )
-        # "AVAILABLE", "ASSIGNED", "STARTED", "SUSPENDED", "ENQUIRED"
-        if item.state == "AVAILABLE" or item.state == "ASSIGNED":
-            if callback_url is not None:
-                cb_data = ActivityRestCallbackData(
-                    sub_class="ActivityRestCallbackData",
-                    notification_callback=callback_url,
-                    activity=ebp_ir,
-                )
-                gc = sas.start_activity_callback(body=cb_data)
-            else:
-                gc = sas.start_activity(body=ebp_ir)
-        else:
-            if callback_url is not None:
-                cb_data = ActivityRestCallbackData(
-                    sub_class="ActivityRestCallbackData",
-                    notification_callback=callback_url,
-                    activity=ebp_ir,
-                )
-                gc = sas.resume_activity_callback(body=cb_data)
-            else:
-                gc = sas.resume_activity(body=ebp_ir)
-        return HtmlGuiContext(gc)
+        return self.remote_html_service.start_html_activity(item, callback_url=callback_url,
+                                                            signal_handler=signal_handler)
 
     def get_html_activity_starting(self) -> SynchronousActivityStartingApi:
         """
         Returns the Remote HTML Runtime Manager Synchronous Activity Starting, ensuring logon to the Runtime Manager
         """
-        sas: SynchronousActivityStartingApi = self.get_service(SynchronousActivityStartingApi)
-        rm: RuntimeManagerApi = self.get_service(RuntimeManagerApi)
-        # always logon again, since the server might have been restarted in the meantime
-        rm.logon(body=self.__csd)
-        return sas
+        return self.remote_html_service.get_html_activity_starting()
 
     def reset_activity(self, item: WorklistItem):
         """Resets the given worklist item."""
