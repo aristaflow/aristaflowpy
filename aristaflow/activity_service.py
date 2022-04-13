@@ -16,7 +16,7 @@ from af_runtime_service import (
     ExecutionMessage,
     RemoteActivityStartingApi,
     RemoteRuntimeEnvironmentApi,
-    SimpleSessionContext,
+    SimpleSessionContext, ActivityRestCallbackData,
 )
 from af_runtime_service.rest import ApiException
 from af_worklist_manager import AfActivityReference, WorklistItem
@@ -67,9 +67,9 @@ class ActivityService(AbstractService):
     def start_sse(
         self, item: WorklistItem, signal_handler: SignalHandler = None
     ) -> ActivityContext:
-        if signal_handler is None:
-            signal_handler = SignalHandler()
+        return self.start(item=item, signal_handler=signal_handler)
 
+    def get_ebp_ir(self, item: WorklistItem) -> EbpInstanceReference:
         ar: AfActivityReference = item.act_ref
         ebp_ir = EbpInstanceReference(
             ar.type,
@@ -81,19 +81,36 @@ class ActivityService(AbstractService):
             ar.execution_manager_uris,
             ar.runtime_manager_uris,
         )
+        return ebp_ir
 
-        # ensure SSE event loop is started
-        self._register_sse()
+    def start(
+        self, item: WorklistItem, signal_handler: SignalHandler = None, callback_url:str = None
+    ) -> ActivityContext:
+        if signal_handler is None:
+            signal_handler = SignalHandler()
+
+        ebp_ir = self.get_ebp_ir(item)
 
         # start the activity using REST
         ras: RemoteActivityStartingApi = self._service_provider.get_service(
             RemoteActivityStartingApi
         )
-        callback_data: ActivitySseCallbackData = ActivitySseCallbackData(
-            sse_conn=self.__push_sse_connection_id,
-            sub_class="ActivitySseCallbackData",
-            activity=ebp_ir,
-        )
+
+        if callback_url is not None:
+            callback_data: ActivityRestCallbackData = ActivityRestCallbackData(
+                sub_class="ActivityRestCallbackData",
+                notification_callback=callback_url,
+                activity=ebp_ir,
+            )
+        else:
+            # ensure SSE event loop is started
+            self._register_sse()
+            callback_data: ActivitySseCallbackData = ActivitySseCallbackData(
+                sse_conn=self.__push_sse_connection_id,
+                sub_class="ActivitySseCallbackData",
+                activity=ebp_ir,
+            )
+
         # check state and handle start/resume
         ssc: SimpleSessionContext
         ac = ActivityContext()
@@ -101,9 +118,15 @@ class ActivityService(AbstractService):
         with self.__value_lock:
             try:
                 if resume:
-                    ssc = ras.resume_activity_sse(body=callback_data)
+                    if callback_url is not None:
+                        ssc = ras.resume_activity_callback(body=callback_data)
+                    else:
+                        ssc = ras.resume_activity_sse(body=callback_data)
                 else:
-                    ssc = ras.start_activity_sse(body=callback_data)
+                    if callback_url is not None:
+                        ssc = ras.start_activity_callback(body=callback_data)
+                    else:
+                        ssc = ras.start_activity_sse(body=callback_data)
             except ApiException as e:
                 if e.body:
                     e_dict = json.loads(e.body)
@@ -112,9 +135,15 @@ class ActivityService(AbstractService):
                         # try resume instead of start or vice versa
                         resume = not resume
                         if resume:
-                            ssc = ras.resume_activity_sse(body=callback_data)
+                            if callback_url is not None:
+                                ssc = ras.resume_activity_callback(body=callback_data)
+                            else:
+                                ssc = ras.resume_activity_sse(body=callback_data)
                         else:
-                            ssc = ras.start_activity_sse(body=callback_data)
+                            if callback_url is not None:
+                                ssc = ras.start_activity_callback(body=callback_data)
+                            else:
+                                ssc = ras.start_activity_sse(body=callback_data)
                     else:
                         raise
                 else:
@@ -249,6 +278,7 @@ class ActivityService(AbstractService):
         """
         if self.__push_sse_client is not None:
             return
+        print('ActivityService initial SSE connection')
         self.__push_sse_connection_id, self.__push_sse_client = self._service_provider.connect_sse(
             RemoteActivityStartingApi
         )
@@ -263,20 +293,20 @@ class ActivityService(AbstractService):
         while not self._disconnected:
             try:
                 if self.__push_sse_client is None:
-                    print("Establishing SSE connection...")
+                    print("ActivityService Establishing SSE connection...")
                     (
                         self.__push_sse_connection_id,
                         self.__push_sse_client,
                     ) = self._service_provider.connect_sse(RemoteActivityStartingApi)
-                print(f"SSE connection established, id is {self.__push_sse_connection_id}")
+                print(f"ActivityService SSE connection established, id is {self.__push_sse_connection_id}")
                 while True:
                     for event in self.__push_sse_client:
-                        print(f"Event {event.event} received: {event.data}")
+                        # print(f"ActivityService Event {event.event} received: {event.data}")
                         if event.event == "SseConnectionEstablished":
                             # print('SSE session was re-established, re-registering..')
                             self.__push_sse_connection_id = event.data
                             # TODO notify activities / lack of re-registration possibility?
-                            print("Runtime SSE connection was re-established!!!")
+                            print("ActivityService Runtime SSE connection was re-established!!!")
                         elif event.event == "execution-message":
                             # print("Worklist update received")
                             try:
@@ -296,9 +326,9 @@ class ActivityService(AbstractService):
                                         traceback.print_exc()
                                 # self._notify_worklist_update_listeners(data)
                             except Exception as e:
-                                print("Couldn't deserialize and apply update: ", event, e)
+                                print("ActivityService couldn't deserialize and apply sse event: ", event, e)
                         else:
-                            print(f"Unknown worklist SSE push event {event.event} received")
+                            print(f"ActivityService Unknown worklist SSE push event {event.event} received")
                     pass
             except ConnectionError:
                 # re-establish connection after some wait time
