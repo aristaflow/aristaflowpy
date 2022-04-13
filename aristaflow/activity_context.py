@@ -26,7 +26,8 @@ class ActivityContext(object):
 
     @property
     def session_id(self) -> str:
-        return self._ssc.session_id
+        # session_id field does not exist in "IncompleteSSC" used by get_ssc
+        return self._ssc.session_id if hasattr(self._ssc, 'session_id') else None
 
     def _map_parameters(self):
         """
@@ -68,9 +69,9 @@ class ActivityContext(object):
         """
         Set the output parameters to the given values
         """
-        for k, v in values:
-            if k in self._output_parameters:
-                self._output_parameters[k].value = v
+        for k in self.output_parameters:
+            if k.name in values:
+                self._output_parameters[k].value = values[k.name]
 
     @property
     def token(self) -> str:
