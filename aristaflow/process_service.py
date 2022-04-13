@@ -71,7 +71,7 @@ class ProcessService(AbstractService):
         return tpls_of_type[0]
 
     def get_instantiable_templates(self) -> List[TemplateReference]:
-        """Retrieves the instantiable tempaltes from the server
+        """Retrieves the instantiable templates from the server
         :return: List[TemplateReference] The instantiable templates for the current user
         """
         ic: InstanceControlApi = self._service_provider.get_service(InstanceControlApi)
