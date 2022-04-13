@@ -59,7 +59,7 @@ class AristaFlowClientService(object):
     __org_model_service: OrgModelService = None
     __activity_service: ActivityService = None
     __remote_html_service: RemoteHtmlService = None
-    __all_services: list[AbstractService] = []
+    __all_services: List[AbstractService] = []
 
     def __init__(
         self, configuration: Configuration, user_session: str, service_provider: ServiceProvider
