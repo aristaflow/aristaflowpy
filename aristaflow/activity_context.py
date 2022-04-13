@@ -71,7 +71,7 @@ class ActivityContext(object):
         """
         for k in self.output_parameters:
             if k.name in values:
-                self._output_parameters[k].value = values[k.name]
+                self._output_parameters[k.name].value = values[k.name]
 
     @property
     def token(self) -> str:
