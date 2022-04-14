@@ -30,6 +30,9 @@ class ExecutionHistoryService(AbstractService):
         next_iter: ExecHistEntryInitialRemoteIteratorData = pm.read_instance_history(
             inst_log_id, body=[]
         )
+        # seems unlikely but still occurred
+        if next_iter is None:
+            return
         iterator_id = next_iter.iterator_id
         try:
             while next_iter and next_iter.entries:
