@@ -111,46 +111,101 @@ class WorklistService(AbstractService):
         """
         # use a lock to prevent concurrent initialization of the worklist
         with self.__value_lock:
-            if self.__worklist is not None:
-                # simply return the items if push notifications are enabled
-                if worklist_callback is not None or worklist_callback_provider is not None:
-                    # ensure the callback is still registered
-                    self.enable_callback_updates(worklist_callback=worklist_callback,
-                                                 worklist_callback_provider=worklist_callback_provider)
-                    return self.__items
-                if self.__push_sse_client:
-                    return self.__items
-                # perform update
-                if not skip_update:
-                    return self.update_worklist()
+            if self.__worklist is None:
+
+                wum: WorklistUpdateManagerApi = self._service_provider.get_service(
+                    WorklistUpdateManagerApi
+                )
+                update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration(True)
+                wlit: InitialIncClientWorklistData
+                if self.fetch_count is not None:
+                    wlit = wum.logon_and_create_client_worklist(body=update_conf, count=self.fetch_count)
                 else:
+                    wlit = wum.logon_and_create_client_worklist(body=update_conf)
+
+                # currently no items in the worklist
+                if wlit is None:
                     return self.__items
 
-            wum: WorklistUpdateManagerApi = self._service_provider.get_service(
-                WorklistUpdateManagerApi
-            )
-            update_conf: WorklistUpdateConfiguration = self.create_worklist_update_configuration(True)
-            wlit: InitialIncClientWorklistData
-            if self.fetch_count is not None:
-                wlit = wum.logon_and_create_client_worklist(body=update_conf, count=self.fetch_count)
-            else:
-                wlit = wum.logon_and_create_client_worklist(body=update_conf)
+                self.__iterate(self.__items, wlit)
 
-            # currently no items in the worklist
-            if wlit is None:
+                # remember the current worklist meta data
+                self.__worklist = Worklist(
+                    wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf, wlit.agent
+                )
+
+                if not skip_callback:
+                    self.enable_callback_updates(worklist_callback)
+
                 return self.__items
+        # /value_lock end
 
-            self.__iterate(self.__items, wlit)
-
-            # remember the current worklist meta data
-            self.__worklist = Worklist(
-                wlit.worklist_id, wlit.revision, wlit.client_worklist_id, update_conf, wlit.agent
-            )
-
-            if not skip_callback:
-                self.enable_callback_updates(worklist_callback)
-
+        # self.__worklist is not none here
+        # simply return the items if push notifications are enabled
+        if worklist_callback is not None or worklist_callback_provider is not None:
+            # ensure the callback is registered
+            self.enable_callback_updates(worklist_callback=worklist_callback,
+                                         worklist_callback_provider=worklist_callback_provider)
             return self.__items
+        # simply return the items if push notifications are enabled
+        if self.__worklist_callback is not None or self.__worklist_callback_provider is not None:
+            # ensure the callback is still registered
+            self.enable_callback_updates(worklist_callback=self.__worklist_callback,
+                                         worklist_callback_provider=self.__worklist_callback_provider)
+            return self.__items
+        if self.__push_sse_client:
+            return self.__items
+        # perform update
+        if not skip_update:
+            return self.update_worklist()
+        else:
+            return self.__items
+
+    def force_worklist_reload(self) -> List[ClientWorklistItem]:
+        """
+        Forces the reworklist to be reloaded and registrations for push updates, if any, renewed.
+        """
+        if self.__worklist is None:
+            return self.get_worklist()
+
+        wum: WorklistUpdateManagerApi = self._service_provider.get_service(
+            WorklistUpdateManagerApi
+        )
+        worklist_callback = self.__worklist_callback
+        if not worklist_callback and self.__worklist_callback_provider:
+            worklist_callback = self.__worklist_callback_provider()
+
+        # if callback are enabled, de-register and re-register
+        if worklist_callback:
+            is_registered = wum.is_registered_for_updates(self.__worklist.worklist_id,
+                                                          self.__worklist.client_worklist_id)
+            if is_registered:
+                wum.unregister_client_worklist_callback(worklist_id=self.__worklist.worklist_id,
+                                                        client_worklist_id=self.__worklist.client_worklist_id)
+            self._clear_worklist()
+            # register again
+            self.enable_callback_updates(worklist_callback=self.__worklist_callback,
+                                         worklist_callback_provider=self.__worklist_callback_provider,
+                                         client_worklist_id=self.__worklist.client_worklist_id)
+        # if SSE is enabled, close the connection and re-enable
+        elif self.__push_sse_client:
+            self.__push_sse_client.close()
+            self.__push_sse_client = None
+            self._clear_worklist()
+            self.pull_and_apply_worklist_updates()
+            self.enable_push_updates()
+        # no push mechanism: simply clear the worklist and re-fetch it
+        else:
+            self._clear_worklist()
+            self.update_worklist()
+
+    def _clear_worklist(self):
+        """
+        Clears the worklist, i.e. empties the items list and resets the revision information.
+        """
+        self.__items.clear()
+        self.__worklist.revision.update_count = 0
+        self.__worklist.revision.initialisation_date = 1
 
     def enable_callback_updates(self, worklist_callback: str = None,
                                 worklist_callback_provider: WorklistCallbackProvider = None,
@@ -319,6 +374,17 @@ class WorklistService(AbstractService):
                 or self.__worklist_callback_provider is not None:
             return self.__items
 
+        self.pull_and_apply_worklist_updates()
+
+        return self.__items
+
+    def pull_and_apply_worklist_updates(self):
+        """
+        Pulls worklist updates from the server and applies them to the worklist. Using this method while having
+        push updates enabled via SSE or callback, may lead to an inconsistent state in the local list of items.
+        """
+        if self.__worklist is None:
+            return self.get_worklist()
         wu: WorklistUpdateManagerApi = self._service_provider.get_service(WorklistUpdateManagerApi)
         inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(
             self.__worklist.worklist_id,
@@ -333,8 +399,6 @@ class WorklistService(AbstractService):
                 inc_updts.source_revision, inc_updts.target_revision, updates
             )
             self._notify_worklist_update_listeners(updates)
-        return self.__items
-
 
     # TODO define fitting return value
     def select_activity(
