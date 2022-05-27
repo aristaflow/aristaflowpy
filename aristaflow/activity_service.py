@@ -84,12 +84,13 @@ class ActivityService(AbstractService):
         return ebp_ir
 
     def start(
-        self, item: WorklistItem, signal_handler: SignalHandler = None, callback_url:str = None
-    ) -> ActivityContext:
+        self, item: WorklistItem, signal_handler: SignalHandler = None, callback_url: str = None,
+            ebp_ir: EbpInstanceReference = None, item_state: str = None) -> ActivityContext:
         if signal_handler is None:
             signal_handler = SignalHandler()
 
-        ebp_ir = self.get_ebp_ir(item)
+        if ebp_ir is None:
+            ebp_ir = self.get_ebp_ir(item)
 
         # start the activity using REST
         ras: RemoteActivityStartingApi = self._service_provider.get_service(
@@ -114,7 +115,9 @@ class ActivityService(AbstractService):
         # check state and handle start/resume
         ssc: SimpleSessionContext
         ac = ActivityContext()
-        resume = item.state in ["ENQUIRED", "SUSPENDED"]
+        if item_state is None and item is not None:
+            item_state = item.state
+        resume = item_state in ["ENQUIRED", "SUSPENDED"]
         with self.__value_lock:
             try:
                 if resume:
