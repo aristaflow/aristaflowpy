@@ -113,7 +113,7 @@ class ProcessService(AbstractService):
         """Starts the newest version of the given process type, returns the logical ID of the started instance."""
         tpl = self.get_instantiable_template_by_type(process_type)
         if tpl is None:
-            raise Exception("Unknown process type: " + process_type)
+            raise Exception("Unknown process type or insufficient start permission: " + process_type)
         return self.start_by_id(tpl.id, callback_uri, input_data)
 
     def start_by_id(
