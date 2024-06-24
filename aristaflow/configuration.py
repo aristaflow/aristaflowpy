@@ -2,9 +2,9 @@ class Configuration(object):
     def __init__(
         self,
         base_url: str,
-        rem_runtime_url: str,
-        pimage_renderer_url: str,
         caller_uri: str,
+        rem_runtime_url: str = None,
+        pimage_renderer_url: str = None,
         verify_ssl=True,
         pre_shared_key: str = None,
         application_name: str = None,

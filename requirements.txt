@@ -7,5 +7,6 @@ af_licence_manager >= 2.0.3
 af_process_image_renderer >= 3.0.3
 af_remote_html_runtime_manager >= 4.0.3
 af_simple_process_image_renderer >= 2.0.3
+af_res_model_manager >= 1.0.0
 pre-commit >= 2.9.2
 sseclient >= 0.0.27
