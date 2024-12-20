@@ -39,8 +39,17 @@ conf = Configuration(
 conf = Configuration(
     base_url="https://127.0.0.1:5000/",
     caller_uri="http://localhost/python",
+    pimage_renderer_url="http://localhost:82/AristaFlowREST/RuntimeManager/RemoteHTMLRuntimeManager/",
+    rem_runtime_url="http://localhost:83/AristaFlowREST/ProcessImageRenderer/ProcessImageRenderer/",
     application_name=None,
     verify_ssl=False,
+)
+conf = Configuration(
+    base_url="http://127.0.0.1:8080/",
+    caller_uri="http://localhost/python",
+    pimage_renderer_url="http://localhost:82/AristaFlowREST/RuntimeManager/RemoteHTMLRuntimeManager/",
+    rem_runtime_url="http://localhost:83/AristaFlowREST/ProcessImageRenderer/ProcessImageRenderer/",
+    application_name=None
 )
 platform = AristaFlowClientPlatform(conf)
 cs = platform.get_client_service()
@@ -58,7 +67,7 @@ def print_connection_info():
     print(f"Licensed to: {li.licensee}")
 
 
-# print_connection_info()
+print_connection_info()
 
 
 def print_template_info():
@@ -67,14 +76,13 @@ def print_template_info():
     print(f"Found instantiable templates: {len(tpl.templ_refs)}")
 
 
-# print_template_info()
+print_template_info()
 
 ws = cs.worklist_service
 items = ws.get_worklist()
 
 # print(f"Found {len(items)} worklist items")
 
-ws.update_worklist_item(items[0])
 
 def worklist_sse_push():
     def worklist_updated(updates: List[ClientWorklistItemUpdate]):
@@ -87,9 +95,6 @@ def worklist_sse_push():
 def worklist_manual_update():
     ws.update_worklist()
     print(f"Found {len(items)} worklist items")
-
-print(items[0].priority)
-print(items[0].ind_priority)
 
 # worklist_sse_push()
 
@@ -118,6 +123,7 @@ def runtime_service_example():
     try:
         # Configuration values of the activity
         act_instance: ActivityInstance = ac.ssc.act_instance
+        print(act_instance)
         act_conf: ActivityConfiguration = act_instance.act_conf
         print(f"Activity config: {act_conf.values}")
         # access any configuration value (values is a python dict)
@@ -161,10 +167,10 @@ def runtime_service_example():
         act_service.activity_reset(ac)
 
 
-# ps = cs.process_service
-# ps.start_by_id('234567-456-34-23456...')
-# items = ws.get_worklist()
-# print(items)
+ps = cs.process_service
+ps.start_by_id('00000000-0000-0004-0000-000000000000')
+items = ws.get_worklist()
+print(items)
 
 # execute worklist items
 while True:

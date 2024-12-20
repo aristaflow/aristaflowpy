@@ -35,13 +35,13 @@ class ExecutionHistoryService(AbstractService):
             return
         iterator_id = next_iter.iterator_id
         try:
-            while next_iter and next_iter.entries:
-                for entry in next_iter.entries:
+            while next_iter and next_iter.exec_hist:
+                for entry in next_iter.exec_hist:
                     yield entry
-                if next_iter.dropped:
+                if next_iter.closed:
                     break
                 next_iter = eh_iter_api.exec_hist_entry_get_next(iterator_id)
         except GeneratorExit:
             # generator closed
             if iterator_id:
-                eh_iter_api.exec_hist_entry_drop(iterator_id)
+                eh_iter_api.exec_hist_entry_close(iterator_id)

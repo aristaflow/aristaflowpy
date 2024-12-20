@@ -26,7 +26,7 @@ class OrgModelService(AbstractService):
                 agent_id, org_pos_id
             )
         )
-        return it.agents[0]
+        return it.qas[0]
     
     def get_agent_details(self, agent_name: str):
         """

@@ -2,7 +2,7 @@
 # Default Python Libraries
 from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
-from typing import Dict, Generator, Tuple, Type, TypeVar
+from typing import Dict, Tuple, Type, TypeVar
 
 # Third Party Libraries
 import sseclient

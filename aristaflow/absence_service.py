@@ -12,7 +12,7 @@ from af_worklist_manager.models.absence_data import AbsenceData
 from af_worklist_manager.models.absence_information import AbsenceInformation
 from af_worklist_manager.models.qualified_agent import QualifiedAgent
 from aristaflow.abstract_service import AbstractService
-from aristaflow.utils import FROM_BPM_DATE, TO_BPM_DATE, OrgUtils
+from aristaflow.utils import OrgUtils
 
 
 class ExtendedAbsenceInformation(object):
@@ -39,8 +39,8 @@ class ExtendedAbsenceInformation(object):
         self.substitute_agents = substitute_agents
         self.absentee = absentee
         if ai:
-            self.absent_from = FROM_BPM_DATE(ai.from_date)
-            self.absent_until = FROM_BPM_DATE(ai.to_date)
+            self.absent_from = ai.from_date
+            self.absent_until = ai.to_date
             self.absence_information = ai
 
 
@@ -75,10 +75,9 @@ class AbsenceService(AbstractService):
             substitute_summary = ""
             substitute_agents = []
             if ai is not None:
-                unix_millis_now = TO_BPM_DATE(datetime.utcnow())
                 # from date not in the future
-                absence_started = ai.from_date < unix_millis_now
-                absence_lasting = ai.to_date == 0 or ai.to_date > unix_millis_now
+                absence_started = ai.from_date < datetime.now()
+                absence_lasting = ai.to_date == 0 or ai.to_date > datetime.now()
                 is_absent_now = absence_started and absence_lasting
                 if ai.substitution_rule:
                     substitute_agents = self._rem_iter_handler.consume(
@@ -98,11 +97,8 @@ class AbsenceService(AbstractService):
 
     def is_absent_now(self, absent_from: datetime = None, absent_until: datetime = None) -> bool:
         """Returns whether the specified absence range is considered as absent now."""
-        unix_millis_now = TO_BPM_DATE(datetime.utcnow())
-        from_date = TO_BPM_DATE(absent_from)
-        to_date = TO_BPM_DATE(absent_until)
-        absence_started = from_date < unix_millis_now
-        absence_lasting = to_date == 0 or to_date > unix_millis_now
+        absence_started = absent_from < datetime.now()
+        absence_lasting = absent_until == 0 or absent_until > datetime.now()
         return absence_started and absence_lasting
 
     def create_substitutes_staff_assignment_rule(self, qas: List[QualifiedAgent]) -> str:
@@ -132,10 +128,8 @@ class AbsenceService(AbstractService):
     ):
         """Sets the given agent as absent using the proved information"""
         wum: WorklistUpdateManagerApi = self._service_provider.get_service(WorklistUpdateManagerApi)
-        _from = TO_BPM_DATE(absent_from)
-        to = TO_BPM_DATE(absent_until)
         substitution_rule = self.create_substitutes_staff_assignment_rule(substitutes)
-        absence_data = AbsenceData(absentee, _from, to, substitution_rule)
+        absence_data = AbsenceData(absentee, absent_from, absent_until, substitution_rule)
         wum.set_absent(body=absence_data)
 
     def set_present(self, absentee: QualifiedAgent):

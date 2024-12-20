@@ -20,7 +20,7 @@ class DelegationService(AbstractService):
 
     def get_delegation_recipients(self, *items: WorklistItem) -> List[QualifiedAgent]:
         """Retrieves the possible delegation recipients for the given worklist items, ie.
-        the intersection of all all possible delegation recipients of all items.
+        the intersection of all possible delegation recipients of all items.
         """
         recipient_set: Dict[str, QualifiedAgent] = None
         for item in items:
@@ -73,11 +73,11 @@ class DelegationService(AbstractService):
         """Reads up the given delegation recipients iterator"""
         if cur_iter is None:
             return
-        if cur_iter.agents:
-            recipients += cur_iter.agents
+        if cur_iter.qas:
+            recipients += cur_iter.qas
         else:
             return
-        if cur_iter.dropped:
+        if cur_iter.closed:
             return
 
         api: DelRecRemoteIteratorApi = self._service_provider.get_service(DelRecRemoteIteratorApi)

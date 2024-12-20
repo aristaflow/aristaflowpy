@@ -1,4 +1,3 @@
-import asyncio
 import json
 import threading
 import traceback
@@ -8,6 +7,7 @@ import sseclient
 from af_remote_html_runtime_manager import SynchronousActivityStartingApi, ActivityExecData, ActivitySseCallbackData
 from af_worklist_manager import AfActivityReference, WorklistItem
 
+from .configuration import Configuration
 from .service_provider import ServiceProvider
 from .abstract_service import AbstractService
 
@@ -26,6 +26,7 @@ class HtmlSignalHandler(object):
     """
 
     _gui_context: HtmlGuiContext = None
+    __af_conf: Configuration = None
 
     @property
     def gui_context(self) -> HtmlGuiContext:
@@ -60,10 +61,11 @@ class RemoteHtmlService(AbstractService):
     __push_sse_connection_id: str = None
     __value_lock: threading.Lock = None
 
-    def __init__(self, service_provider: ServiceProvider):
+    def __init__(self, service_provider: ServiceProvider, af_conf: Configuration):
         AbstractService.__init__(self, service_provider)
         self.__signal_handlers = {}
         self.__value_lock = threading.Lock()
+        self.__af_conf = af_conf
 
     @staticmethod
     def is_html_activity(item: WorklistItem) -> bool:

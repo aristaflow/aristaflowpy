@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-import asyncio
 import json
 import traceback
 from asyncio import sleep
@@ -97,7 +96,7 @@ class ProcessService(AbstractService):
         else:
             return
         # iterator is used up
-        if inc.dropped:
+        if inc.closed:
             return
 
         # fetch next
@@ -131,20 +130,20 @@ class ProcessService(AbstractService):
                 sub_class="InstanceCreationSseData", sse_conn=self._sse_id
             )
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
-            return ic.create_and_start_instance_sse(templ_id=template_id, body=inst_creation_data)
+            return ic.start_instance_sse(templ_id=template_id, body=inst_creation_data)
         elif callback_uri is not None:
             inst_creation_data = InstanceCreationRestData(
                 sub_class="InstanceCreationRestData", notification_callback=callback_uri
             )
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
-            return ic.create_and_start_instance_callback(
+            return ic.start_instance_callback(
                 body=inst_creation_data, templ_id=template_id
             )
         else:
             # no callback url, no SSE
             inst_creation_data = InstanceCreationData(sub_class="InstanceCreationData")
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
-            return ic.create_and_start_instance(template_id, body=inst_creation_data)
+            return ic.start_instance(inst_creation_data, template_id)
 
     def __create_instance_container(
         self, ic: InstanceControlApi, template_id: str, input_data: dict

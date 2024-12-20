@@ -9,3 +9,4 @@ from aristaflow.process_service import ProcessService
 from aristaflow.remote_iterator_handler import RemoteIteratorHandler
 from aristaflow.service_provider import ServiceProvider
 from aristaflow.worklist_service import WorklistService
+from aristaflow.abstract_service import AbstractService

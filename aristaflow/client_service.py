@@ -6,12 +6,8 @@ from typing import Dict, List, Type, TypeVar
 import af_execution_manager
 from af_execution_manager.api.activity_execution_control_api import ActivityExecutionControlApi
 from af_org_model_manager.api.global_security_manager_api import GlobalSecurityManagerApi
-from af_org_model_manager.models.auth_data_app_name import AuthDataAppName
-from af_org_model_manager.models.auth_data_arbitrary import AuthDataArbitrary
-from af_org_model_manager.models.auth_data_org_pos import AuthDataOrgPos
-from af_org_model_manager.models.auth_data_password import AuthDataPassword
-from af_org_model_manager.models.auth_data_user_name import AuthDataUserName
 from af_org_model_manager.models.authentication_data import AuthenticationData
+from af_org_model_manager.models.org_pos_spec import OrgPosSpec
 from af_org_model_manager.models.client_session_details import ClientSessionDetails
 from af_org_model_manager.models.qualified_agent import QualifiedAgent
 from af_remote_html_runtime_manager.api.synchronous_activity_starting_api import (
@@ -92,22 +88,21 @@ class AristaFlowClientService(object):
         if self.__csd is not None:
             raise Exception("Already authenticated")
 
-        auth_data: List[AuthenticationData] = [
-            AuthDataUserName(username, sub_class="AuthDataUserName")
-        ]
+        auth_data: AuthenticationData = AuthenticationData(OrgPosSpec(user_name=username))
+
         if org_pos_id is not None:
-            auth_data.append(AuthDataOrgPos(org_pos_id, sub_class="AuthDataOrgPos"))
+            auth_data.org_pos_spec = OrgPosSpec(org_pos_id, username)
         psk = self.__af_conf.pre_shared_key
         method: str
         # if a password was provided, use it
         if password:
-            auth_data.append(AuthDataPassword(password=password, sub_class="AuthDataPassword"))
+            auth_data.password = password
             method = "UTF-8_PASSWORD"
         # if PSK is configured, use that
         elif psk:
             # get the utf-8 bytes, encode them using base 64 and decode the resulting bytes using ASCII
             psk_encoded = base64.b64encode(bytes(psk, "UTF-8")).decode("ascii")
-            auth_data.append(AuthDataArbitrary(data=psk_encoded, sub_class="AuthDataArbitrary"))
+            auth_data.data = psk_encoded
             method = "SHARED_UTF-8_KEY"
         else:
             raise Exception("No authentication method left")
@@ -119,7 +114,7 @@ class AristaFlowClientService(object):
             if org_pos_id is None:
                 # if an application name is provided, an org position ID must be used as well
                 # get the org positions
-                agents: List[QualifiedAgent] = gsm.pre_authenticate_method(method, body=auth_data)
+                agents: List[QualifiedAgent] = gsm.pre_authenticate_method(auth_data, method)
                 agent: QualifiedAgent
                 # pick the single org position
                 if len(agents) == 1:
@@ -137,16 +132,12 @@ class AristaFlowClientService(object):
                             agent = a
                             break
                 # set the org position for the actual authentication
-                auth_data.append(AuthDataOrgPos(agent.org_pos_id, sub_class="AuthDataOrgPos"))
+                auth_data.org_pos_spec = OrgPosSpec(agent.org_pos_id, username)
             # use the application name
-            auth_data.append(
-                AuthDataAppName(
-                    app_name=self.__af_conf.application_name, sub_class="AuthDataAppName"
-                )
-            )
+            auth_data.app_name = self.__af_conf.application_name
 
         csds: List[ClientSessionDetails] = gsm.authenticate_all_method(
-            method, self.__af_conf.caller_uri, body=auth_data
+            auth_data, method, self.__af_conf.caller_uri
         )
 
         csd: ClientSessionDetails
@@ -223,7 +214,7 @@ class AristaFlowClientService(object):
     @property
     def activity_service(self):
         if self.__activity_service is None:
-            self.__activity_service = ActivityService(self.__service_provider)
+            self.__activity_service = ActivityService(self.__service_provider, self.__af_conf)
             self.__all_services.append(self.__activity_service)
         return self.__activity_service
 

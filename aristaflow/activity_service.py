@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-import asyncio
 import json
 import threading
 import traceback
@@ -20,6 +19,8 @@ from af_runtime_service import (
 )
 from af_runtime_service.rest import ApiException
 from af_worklist_manager import AfActivityReference, WorklistItem
+
+from .configuration import Configuration
 from aristaflow.abstract_service import AbstractService
 from aristaflow.activity_context import ActivityContext
 from aristaflow.service_provider import ServiceProvider
@@ -58,11 +59,13 @@ class ActivityService(AbstractService):
     __push_sse_connection_id: str = None
     __signal_handlers: Dict[str, SignalHandler] = None
     __value_lock: Lock = None
+    __af_conf: Configuration = None
 
-    def __init__(self, service_provider: ServiceProvider):
+    def __init__(self, service_provider: ServiceProvider, af_conf: Configuration):
         AbstractService.__init__(self, service_provider)
         self.__signal_handlers = {}
         self.__value_lock = threading.Lock()
+        self.__af_conf = af_conf
 
     def start_sse(
         self, item: WorklistItem, signal_handler: SignalHandler = None
@@ -72,7 +75,7 @@ class ActivityService(AbstractService):
     def get_ebp_ir(self, item: WorklistItem) -> EbpInstanceReference:
         ar: AfActivityReference = item.act_ref
         ebp_ir = EbpInstanceReference(
-            ar.type,
+            ar.ref_type,
             ar.instance_id,
             ar.instance_log_id,
             ar.base_template_id,
@@ -217,7 +220,7 @@ class ActivityService(AbstractService):
         )
         with self.__value_lock:
             self.__set_security_token(rre, ac.token)
-            rre.application_suspended(ac.session_id, body=ac.ssc.data_context)
+            rre.application_suspended(ac.ssc.data_context, ac.session_id)
         self._drop_signal_handler(ac)
 
     def activity_failed(

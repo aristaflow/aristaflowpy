@@ -2,7 +2,7 @@
 
 // options
 // delete the locally cached swagger-codegen-cli.jar when changing this URL
-const swaggerVersion = "3.0.22";
+const swaggerVersion = "3.0.65";
 const swaggerCodegenUrl =
   "https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/" +
   swaggerVersion +

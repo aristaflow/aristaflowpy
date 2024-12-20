@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-import asyncio
 import json
 import traceback
 import warnings
 from asyncio import sleep
 from threading import Lock
-from typing import Generator, List, Set, Union
+from typing import List, Set, Union
 
 # Third Party Libraries
 from requests import ConnectionError
@@ -33,7 +32,7 @@ from af_worklist_manager.models.worklist_update import WorklistUpdate
 from af_worklist_manager.models.worklist_update_configuration import WorklistUpdateConfiguration
 
 from af_execution_manager import ActivityStartingApi
-from af_worklist_manager import WorklistItem, AfActivityReference
+from af_worklist_manager import WorklistItem, AfActivityReference, SinceRevisionWithFilter
 from af_runtime_service import EbpInstanceReference
 
 from .abstract_service import AbstractService
@@ -351,12 +350,12 @@ class WorklistService(AbstractService):
         if inc is None:
             return
         # append the items
-        if inc.items_flat:
-            items += inc.items_flat
+        if inc.cw_items:
+            items += inc.cw_items
         else:
             return
         # iterator is used up
-        if inc.dropped:
+        if inc.closed:
             return
 
         # fetch next
@@ -387,9 +386,8 @@ class WorklistService(AbstractService):
             return self.get_worklist()
         wu: WorklistUpdateManagerApi = self._service_provider.get_service(WorklistUpdateManagerApi)
         inc_updts: InitialIncWorklistUpdateData = wu.get_worklist_updates(
-            self.__worklist.worklist_id,
-            body=self.__worklist.revision,
-            filter=self.__worklist.wu_conf.worklist_filter,
+            SinceRevisionWithFilter(self.__worklist.revision,self.__worklist.wu_conf.worklist_filter),
+            self.__worklist.worklist_id
         )
 
         if inc_updts is not None:
@@ -437,7 +435,7 @@ class WorklistService(AbstractService):
             updates += inc.item_updates
         else:
             return
-        if inc.dropped:
+        if inc.closed:
             return
 
         # fetch next

@@ -1,4 +1,5 @@
 # Default Python Libraries
+from concurrent.futures.thread import ThreadPoolExecutor
 from importlib import import_module
 from multiprocessing.pool import ThreadPool
 from typing import Dict
@@ -20,8 +21,8 @@ class RestPackage(object):
 
     def __init__(self, package_name: str, af_conf: Configuration):
         """
-        :param package_name str: The base package name, e.g. af_org_model_manager
-        :param af_conf Configuration: The AristaFlow BPM configuration.
+        :param str package_name: The base package name, e.g. af_org_model_manager
+        :param Configuration af_conf: The AristaFlow BPM configuration.
         """
         self.package_name = package_name
         self.af_conf = af_conf
@@ -136,7 +137,7 @@ class RestPackageInstance(object):
     __rest_package: RestPackage = None
     __api_client: object = None
 
-    def __init__(self, rest_package: RestPackage, async_thread_pool: ThreadPool):
+    def __init__(self, rest_package: RestPackage, async_thread_pool: ThreadPoolExecutor):
         self.__rest_package = rest_package
         self.__async_thread_pool = async_thread_pool
 
