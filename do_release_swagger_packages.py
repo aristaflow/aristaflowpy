@@ -9,6 +9,6 @@ repository = "testpypi"
 libs = os.listdir("./swagger/")
 for lib in libs:
     subprocess.call(
-        ["python3", "-m", "twine", "upload", "--repository", repository, "dist/*"],
+        ["python3", "-m", "twine", "upload", "--repository", repository, "dist/*.tar.gz"],
         cwd=f"swagger/{lib}",
     )

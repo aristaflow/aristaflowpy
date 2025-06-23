@@ -265,7 +265,7 @@ function generateClient(service, project) {
         fs.copyFileSync('./LICENSE', generatedCodePath + 'LICENSE');
 
         console.log("Installing python module " + service);
-        return execFile("python", ["setup.py", "install", "sdist", "bdist_wheel"], {
+        return execFile("python", ["-m", "build"], {
           cwd: "./swagger/" + project,
         }).then((res) => {
           console.log(
