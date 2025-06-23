@@ -2,7 +2,7 @@
 
 // options
 // delete the locally cached swagger-codegen-cli.jar when changing this URL
-const swaggerVersion = "3.0.65";
+const swaggerVersion = "3.0.68";
 const swaggerCodegenUrl =
   "https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/" +
   swaggerVersion +
@@ -25,7 +25,7 @@ const swaggerFile = "swagger.json";
 const configFile = "swagger-config.json";
 
 // increment this whenever changing the generated output w/o updated major/minor versions of the endpoint
-const genearteBackendVersion = 3;
+const genearteBackendVersion = 4;
 
 // download the swagger code generator
 function downloadSwagger() {
@@ -52,6 +52,13 @@ function applySwaggerJsonFixes(swaggerJson) {
   var schemaWithMissingAllOf = [];
   for (var schemaName in swaggerJson.components.schemas) {
     var schema = swaggerJson.components.schemas[schemaName];
+    // add a descriminator for all schemata having a subClass attribute
+    if (schema.properties && schema.properties.subClass) {
+      if (!schema.discriminator) {
+          schema.discriminator = {"propertyName" : "subClass"};
+          changed = true;
+      }
+    }
     if (schema.discriminator && !schema.allOf) {
       schemaWithMissingAllOf.push(schemaName);
     }
