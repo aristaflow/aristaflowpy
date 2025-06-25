@@ -61,6 +61,24 @@ WorklistCallbackProvider = type(__worklist_callback_provider)
 """
 
 
+def get_ebp_ir(item):
+    """
+    Returns the EBP Instance Reference for the given worklist item
+    """
+    ar: AfActivityReference = item.act_ref
+    ebp_ir = EbpInstanceReference(
+        ar.type,
+        ar.instance_id,
+        ar.instance_log_id,
+        ar.base_template_id,
+        ar.node_id,
+        ar.node_iteration,
+        ar.execution_manager_uris,
+        ar.runtime_manager_uris,
+    )
+    return ebp_ir
+
+
 class WorklistService(AbstractService):
     # The fetch size for incremental worklists / updates. If None, the
     # server-side default will be used
@@ -398,7 +416,6 @@ class WorklistService(AbstractService):
             )
             self._notify_worklist_update_listeners(updates)
 
-    # TODO define fitting return value
     def select_activity(
         self, item: WorklistItem #, signal_handler: SignalHandler = None
     ) -> bool:
@@ -408,21 +425,23 @@ class WorklistService(AbstractService):
         asa: ActivityStartingApi = self._service_provider.get_service(
             ActivityStartingApi
         )
-        
-        ar: AfActivityReference = item.act_ref
-        ebp_ir = EbpInstanceReference(
-            ar.type,
-            ar.instance_id,
-            ar.instance_log_id,
-            ar.base_template_id,
-            ar.node_id,
-            ar.node_iteration,
-            ar.execution_manager_uris,
-            ar.runtime_manager_uris,
+
+        ebp_ir = get_ebp_ir(item)
+        asa.select_activity(body=ebp_ir)
+        return True
+
+    def deselect_activity(
+        self, item: WorklistItem #, signal_handler: SignalHandler = None
+    ) -> bool:
+        """
+        Unassigns the current user from the provided activity
+        """
+        asa: ActivityStartingApi = self._service_provider.get_service(
+            ActivityStartingApi
         )
 
-        asa.select_activity(body=ebp_ir)
-
+        ebp_ir = get_ebp_ir(item)
+        asa.deselect_activity(body=ebp_ir)
         return True
 
     def __iterate_updates(
