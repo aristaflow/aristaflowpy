@@ -221,7 +221,7 @@ class AristaFlowClientService(object):
     @property
     def remote_html_service(self):
         if self.__remote_html_service is None:
-            self.__remote_html_service = RemoteHtmlService(self.__service_provider)
+            self.__remote_html_service = RemoteHtmlService(self.__service_provider, self.__af_conf)
             self.__all_services.append(self.__remote_html_service)
         return self.__remote_html_service
 
