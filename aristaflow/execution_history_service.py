@@ -28,7 +28,7 @@ class ExecutionHistoryService(AbstractService):
             ExecHistEntryRemoteIteratorRestApi
         )
         next_iter: ExecHistEntryInitialRemoteIteratorData = pm.read_instance_history(
-            inst_log_id, body=[]
+            inst_log_id
         )
         # seems unlikely but still occurred
         if next_iter is None:
