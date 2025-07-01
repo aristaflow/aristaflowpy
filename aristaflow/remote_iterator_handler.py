@@ -27,7 +27,7 @@ class RemoteIteratorHandler(object):
         else:
             # no data left, end recursion
             return
-        if iterator_data.dropped:
+        if iterator_data.closed:
             return
 
         next_iter = iter_api_method(iter_api, iterator_data.iterator_id)

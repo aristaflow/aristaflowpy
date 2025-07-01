@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List
 
 # AristaFlow REST Libraries
@@ -54,7 +54,7 @@ class AbsenceService(AbstractService):
         wum: WorklistUpdateManagerApi = self._service_provider.get_service(WorklistUpdateManagerApi)
         return self._rem_iter_handler.consume(
             wum.get_possible_absentees(),
-            "agents",
+            "qas",
             PossAbsRemoteIteratorApi,
             PossAbsRemoteIteratorApi.poss_abs_get_next,
         )
@@ -76,13 +76,13 @@ class AbsenceService(AbstractService):
             substitute_agents = []
             if ai is not None:
                 # from date not in the future
-                absence_started = ai.from_date < datetime.now()
-                absence_lasting = ai.to_date == 0 or ai.to_date > datetime.now()
+                absence_started = ai.from_date < datetime.now(UTC)
+                absence_lasting = ai.to_date == 0 or ai.to_date > datetime.now(UTC)
                 is_absent_now = absence_started and absence_lasting
                 if ai.substitution_rule:
                     substitute_agents = self._rem_iter_handler.consume(
                         pol_res.resolve_policy(org_policy=ai.substitution_rule),
-                        "agents",
+                        "qas",
                         QaRemoteIteratorApi,
                     )
                 substitute_summary = OrgUtils.summarize_qa_list(*substitute_agents)
