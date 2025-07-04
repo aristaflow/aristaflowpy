@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Default Python Libraries
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import List
 
 # AristaFlow REST Libraries
@@ -76,8 +76,8 @@ class AbsenceService(AbstractService):
             substitute_agents = []
             if ai is not None:
                 # from date not in the future
-                absence_started = ai.from_date < datetime.now(UTC)
-                absence_lasting = ai.to_date == 0 or ai.to_date > datetime.now(UTC)
+                absence_started = ai.from_date < datetime.now(timezone.utc)
+                absence_lasting = ai.to_date == 0 or ai.to_date > datetime.now(timezone.utc)
                 is_absent_now = absence_started and absence_lasting
                 if ai.substitution_rule:
                     substitute_agents = self._rem_iter_handler.consume(
