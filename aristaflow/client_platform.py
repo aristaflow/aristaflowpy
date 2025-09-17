@@ -18,7 +18,15 @@ class AristaFlowClientPlatform(object):
         self.configuration = configuration
         self.__client_services: [str, AristaFlowClientService] = {}
         self.__rest_package_registry = RestPackageRegistry(configuration)
+        # we replace each pool used by each service by a central thread pool executor
+        # the api clients will call join and close during shutdown, the thread pool
+        # executor doesn't have these methods, and its shutdown is done within this class
+        # => add these methods to the TPE doing nothing
         self.__thread_pool = ThreadPoolExecutor()
+        def noop():
+            pass
+        self.__thread_pool.close = noop
+        self.__thread_pool.join = noop
 
     def get_client_service(self, user_session: str = "python_default_session"):
         """
