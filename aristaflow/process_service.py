@@ -7,7 +7,7 @@ from typing import List, Optional, Set, Union
 
 # AristaFlow REST Libraries
 import sseclient
-from af_execution_manager import InstanceCreationSseData, InstanceStateData
+from af_execution_manager import InstanceCreationSseData, InstanceStateData, InstIdPair
 from af_execution_manager.api.instance_control_api import InstanceControlApi
 from af_execution_manager.api.templ_ref_remote_iterator_rest_api import (
     TemplRefRemoteIteratorRestApi,
@@ -108,7 +108,7 @@ class ProcessService(AbstractService):
 
     def start_by_type(
         self, process_type: str, callback_uri: str = None, input_data: dict = None
-    ) -> str:
+    ) -> InstIdPair:
         """Starts the newest version of the given process type, returns the logical ID of the started instance."""
         tpl = self.get_instantiable_template_by_type(process_type)
         if tpl is None:
@@ -117,7 +117,7 @@ class ProcessService(AbstractService):
 
     def start_by_id(
         self, template_id: str, callback_uri: str = None, input_data: dict = None
-    ) -> str:
+    ) -> InstIdPair:
         """Starts a process given by the template id. Returns the logical ID of the started instance.
         If an InstanceStateListener is registered, instance state changes (and autostart pending events) are
         listened to using SSE. In that case, no callback_uri can be used.
