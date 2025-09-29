@@ -22,7 +22,7 @@ class AristaFlowClientPlatform(object):
         # the api clients will call join and close during shutdown, the thread pool
         # executor doesn't have these methods, and its shutdown is done within this class
         # => add these methods to the TPE doing nothing
-        self.__thread_pool = ThreadPoolExecutor()
+        self.__thread_pool = ThreadPoolExecutor(thread_name_prefix='aristaflowpy')
         def noop():
             pass
         self.__thread_pool.close = noop
