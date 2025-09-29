@@ -130,12 +130,16 @@ class ProcessService(AbstractService):
                 sub_class="InstanceCreationSseData", sse_conn=self._sse_id
             )
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
+            # set the runtime manager URIs to receive auto start pending events
+            inst_creation_data.rt_mgr = [self.__af_conf.caller_uri]
             return ic.start_instance_sse(templ_id=template_id, body=inst_creation_data)
         elif callback_uri is not None:
             inst_creation_data = InstanceCreationRestData(
                 sub_class="InstanceCreationRestData", notification_callback=callback_uri
             )
             inst_creation_data.dc = self.__create_instance_container(ic, template_id, input_data)
+            # set the runtime manager URIs to receive auto start pending events
+            inst_creation_data.rt_mgr = [self.__af_conf.caller_uri]
             return ic.start_instance_callback(
                 body=inst_creation_data, templ_id=template_id
             )
