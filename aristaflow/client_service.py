@@ -297,4 +297,4 @@ class AristaFlowClientService(object):
             try:
                 service.disconnect()
             except Exception as e:
-                print("Exception on disconnecting service", e)
+                print("Exception on disconnecting service: ", e)
