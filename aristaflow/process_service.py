@@ -195,9 +195,11 @@ class ProcessService(AbstractService):
                 )
                 self._sse_id = sse_connection_id
                 # print(f'ProcessService: SSE connection establised, id {self._sse_id}')
-                while True:
+                while not self._disconnected:
                     self.__push_sse_client = sse_client
                     for event in sse_client:
+                        if self._disconnected:
+                            break
                         if event.event == "SseConnectionEstablished":
                             print("ProcessService SSE session was re-established.")
                             self._sse_id = event.data
@@ -267,6 +269,4 @@ class ProcessService(AbstractService):
 
     def disconnect(self):
         AbstractService.disconnect(self)
-        # close the SSE connection if any
-        if self.__push_sse_client:
-            self.__push_sse_client.close()
+        self._close_sse_client(self.__push_sse_client)

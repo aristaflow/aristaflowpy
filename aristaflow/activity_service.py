@@ -305,8 +305,10 @@ class ActivityService(AbstractService):
                         self.__push_sse_client,
                     ) = self._service_provider.connect_sse(RemoteActivityStartingApi)
                 print(f"ActivityService SSE connection established, id is {self.__push_sse_connection_id}")
-                while True:
+                while not self._disconnected:
                     for event in self.__push_sse_client:
+                        if self._disconnected:
+                            break
                         # print(f"ActivityService Event {event.event} received: {event.data}")
                         if event.event == "SseConnectionEstablished":
                             # print('SSE session was re-established, re-registering..')
@@ -353,5 +355,4 @@ class ActivityService(AbstractService):
             # TODO implement some "suspend if resumed" logic and only suspend if formerly resumed
             self.activity_suspended(signal_handler.ac)
         # close the SSE connection if any
-        if self.__push_sse_client:
-            self.__push_sse_client.close()
+        self._close_sse_client(self.__push_sse_client)

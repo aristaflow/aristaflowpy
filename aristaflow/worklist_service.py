@@ -278,7 +278,7 @@ class WorklistService(AbstractService):
                 sse_connection_id, sse_client = self._service_provider.connect_sse(
                     WorklistUpdateManagerApi
                 )
-                while True:
+                while not self._disconnected:
                     print("WorklistService SSE connection established, registering for worklist push...")
                     callback_data = ClientWorklistSseCallbackData(
                         sse_conn=sse_connection_id,
@@ -296,6 +296,8 @@ class WorklistService(AbstractService):
                     print("Worklist registered for SSE push")
                     self.__push_sse_client = sse_client
                     for event in sse_client:
+                        if self._disconnected:
+                            break
                         if event.event == "SseConnectionEstablished":
                             # print('SSE session was re-established, re-registering..')
                             callback_data.sse_conn = event.data
@@ -572,5 +574,4 @@ class WorklistService(AbstractService):
     def disconnect(self):
         AbstractService.disconnect(self)
         # close the SSE connection if any
-        if self.__push_sse_client:
-            self.__push_sse_client.close()
+        self._close_sse_client(self.__push_sse_client)

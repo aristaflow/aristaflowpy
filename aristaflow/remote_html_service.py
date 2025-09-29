@@ -189,8 +189,10 @@ class RemoteHtmlService(AbstractService):
                         self.__push_sse_client,
                     ) = self._service_provider.connect_sse(SynchronousActivityStartingApi)
                 print(f"RemoteHtmlService SSE connection established, id is {self.__push_sse_connection_id}")
-                while True:
+                while not self._disconnected:
                     for event in self.__push_sse_client:
+                        if self._disconnected:
+                            break
                         print(f"Event {event.event} received: {event.data}")
                         activity_signal: str = None
                         if event.event == 'SseConnectionEstablished':
@@ -249,5 +251,4 @@ class RemoteHtmlService(AbstractService):
     def disconnect(self):
         AbstractService.disconnect(self)
         # close the SSE connection if any
-        if self.__push_sse_client:
-            self.__push_sse_client.close()
+        self._close_sse_client(self.__push_sse_client)
