@@ -176,10 +176,10 @@ class RemoteHtmlService(AbstractService):
         self._service_provider.thread_pool.submit(self._process_push_updates)
 
     def _process_push_updates(self):
-        print('RemoteHtmlService starting push update processing')
         """
         Coroutine retrieving SSE push notifications for the activities, handling registration and reconnects
         """
+        print('RemoteHtmlService starting push update processing')
         while not self._disconnected:
             try:
                 if self.__push_sse_client is None:
