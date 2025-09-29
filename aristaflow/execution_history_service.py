@@ -23,12 +23,14 @@ class ExecutionHistoryService(AbstractService):
         Returns a generator allowing to read an arbitrary number of execution history entries.
         Close the generator for dropping the remote iterator.
         """
-        pm: ExecutionHistoryApi = self._service_provider.get_service(ExecutionHistoryApi)
+        eh: ExecutionHistoryApi = self._service_provider.get_service(ExecutionHistoryApi)
         eh_iter_api: ExecHistEntryRemoteIteratorRestApi = self._service_provider.get_service(
             ExecHistEntryRemoteIteratorRestApi
         )
-        next_iter: ExecHistEntryInitialRemoteIteratorData = pm.read_instance_history(
-            inst_log_id
+        # set max_entries to indefinite, the caller will simply stop fetching more at some point in time
+        next_iter: ExecHistEntryInitialRemoteIteratorData = eh.read_instance_history(
+            # need to set max_entries = 0 otherwise the server silently applies a default value
+            inst_log_id=inst_log_id, max_entries=0
         )
         # seems unlikely but still occurred
         if next_iter is None:
