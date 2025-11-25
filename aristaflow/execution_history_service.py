@@ -2,8 +2,8 @@
 from typing import Generator
 
 # AristaFlow REST Libraries
-from af_process_manager.api.exec_hist_entry_remote_iterator_rest_api import (
-    ExecHistEntryRemoteIteratorRestApi,
+from af_process_manager.api.exec_hist_entry_remote_iterator_api import  (
+    ExecHistEntryRemoteIteratorApi,
 )
 from af_process_manager.api.execution_history_api import ExecutionHistoryApi
 from af_process_manager.models.exec_hist_entry_initial_remote_iterator_data import (
@@ -24,8 +24,8 @@ class ExecutionHistoryService(AbstractService):
         Close the generator for dropping the remote iterator.
         """
         eh: ExecutionHistoryApi = self._service_provider.get_service(ExecutionHistoryApi)
-        eh_iter_api: ExecHistEntryRemoteIteratorRestApi = self._service_provider.get_service(
-            ExecHistEntryRemoteIteratorRestApi
+        eh_iter_api: ExecHistEntryRemoteIteratorApi = self._service_provider.get_service(
+            ExecHistEntryRemoteIteratorApi
         )
         # set max_entries to indefinite, the caller will simply stop fetching more at some point in time
         next_iter: ExecHistEntryInitialRemoteIteratorData = eh.read_instance_history(

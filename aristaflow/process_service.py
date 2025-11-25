@@ -9,8 +9,8 @@ from typing import List, Optional, Set, Union
 import sseclient
 from af_execution_manager import InstanceCreationSseData, InstanceStateData, InstIdPair
 from af_execution_manager.api.instance_control_api import InstanceControlApi
-from af_execution_manager.api.templ_ref_remote_iterator_rest_api import (
-    TemplRefRemoteIteratorRestApi,
+from af_execution_manager.api.templ_ref_remote_iterator_api import (
+    TemplRefRemoteIteratorApi,
 )
 from af_execution_manager.models.data_container import DataContainer
 from af_execution_manager.models.instance_creation_data import InstanceCreationData
@@ -100,8 +100,8 @@ class ProcessService(AbstractService):
             return
 
         # fetch next
-        tref_rest: TemplRefRemoteIteratorRestApi = self._service_provider.get_service(
-            TemplRefRemoteIteratorRestApi
+        tref_rest: TemplRefRemoteIteratorApi = self._service_provider.get_service(
+            TemplRefRemoteIteratorApi
         )
         next_it: TemplRefRemoteIteratorData = tref_rest.templ_ref_get_next(inc.iterator_id)
         self.__iterate(tpls, next_it)

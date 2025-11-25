@@ -2,7 +2,7 @@
 
 // options
 // delete the locally cached swagger-codegen-cli.jar when changing this URL
-const swaggerVersion = "3.0.68";
+const swaggerVersion = "3.0.75";
 const swaggerCodegenUrl =
   "https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/" +
   swaggerVersion +
@@ -25,7 +25,7 @@ const swaggerFile = "swagger.json";
 const configFile = "swagger-config.json";
 
 // increment this whenever changing the generated output w/o updated major/minor versions of the endpoint
-const genearteBackendVersion = 4;
+const genearteBackendVersion = 5;
 
 // download the swagger code generator
 function downloadSwagger() {
